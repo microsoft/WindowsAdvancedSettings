@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+  xmlns:com="http://schemas.microsoft.com/appx/manifest/com/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  xmlns:desktop="http://schemas.microsoft.com/appx/manifest/desktop/windows10"
+  IgnorableNamespaces="uap uap3 rescap">
+
+  <Identity
+    Name="Microsoft.Windows.DevHome.SettingsTest"
+    Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+    Version="0.0.0.0"/>
+
+    <Properties>
+        <DisplayName>Windows Advanced Settings Tester</DisplayName>
+        <PublisherDisplayName>Microsoft Corp</PublisherDisplayName>
+        <Logo>Assets\StoreLogo.png</Logo>
+    </Properties>
+
+    <Dependencies>
+        <TargetDeviceFamily Name="Windows.Universal" MinVersion="10.0.17763.0" MaxVersionTested="10.0.19041.0" />
+        <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.19041.0" />
+    </Dependencies>
+
+    <Resources>
+        <Resource Language="x-generate"/>
+    </Resources>
+
+    <Applications>
+        <Application Id="App" Executable="AdvancedSettings.Tester.exe" EntryPoint="Windows.FullTrustApplication">
+          <uap3:VisualElements
+            BackgroundColor="transparent"
+            DisplayName="AdvancedSettings Tester"
+            Square150x150Logo="Assets\Square150x150Logo.scale-200.png"
+            Square44x44Logo="Assets\Square44x44Logo.scale-200.png"
+            Description="AdvancedSettings Tester CommandLine"
+            VisualGroup="AdvancedSettings">
+            <uap:SplashScreen BackgroundColor="transparent" Image="Assets\SplashScreen.scale-200.png" />
+            <uap:DefaultTile/>
+          </uap3:VisualElements>
+          <Extensions>
+            <uap3:Extension Category="windows.appExecutionAlias">
+              <uap3:AppExecutionAlias>
+                <desktop:ExecutionAlias Alias="wastester.exe"/>
+              </uap3:AppExecutionAlias>
+            </uap3:Extension>
+          </Extensions>
+        </Application>
+    </Applications>
+
+    <Capabilities>
+        <rescap:Capability Name="runFullTrust" />
+        <rescap:Capability Name="unvirtualizedResources" />
+    </Capabilities>
+</Package>

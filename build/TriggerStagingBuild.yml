@@ -1,0 +1,38 @@
+trigger:
+- staging
+
+resources:
+  repositories:
+  - repository: templates_onebranch
+    type: git
+    name: OneBranch.Pipelines/GovernedTemplates
+    ref: refs/heads/main
+  - repository: m365Pipelines
+    type: git
+    name: 1ESPipelineTemplates/M365GPT
+    ref: refs/tags/release
+
+extends:
+  template: v1/M365.Official.PipelineTemplate.yml@m365Pipelines
+  parameters:
+    sdl:
+      roslyn:
+        enabled: true
+      arrow:
+        serviceConnection: WindowsAdvancedSettings Build VM Generation
+      baseline:
+        baselineFile: $(Build.SourcesDirectory)\guardian\SDL\.gdnbaselines
+    pool:
+      name: Azure-Pipelines-1ESPT-ExDShared
+      image: windows-2022
+      os: windows
+    customBuildTags:
+    - ES365AIMigrationTooling
+    stages:
+    - stage: Trigger_Build
+      dependsOn: []
+      jobs:
+      - job: Trigger_Build
+        steps:
+        - script: echo Triggering ADO Build
+          displayName: 'Triggering ADO Build'
