@@ -1,0 +1,12 @@
+﻿CoRegisterClassObject
+CoRevokeClassObject
+CoResumeClassObjects
+MEMORYSTATUSEX
+GlobalMemoryStatusEx
+SHChangeNotify
+SHLoadIndirectString
+GetCurrentPackageFullName
+OpenProcessToken
+GetTokenInformation
+GetCurrentProcess
+TOKEN_ELEVATION_TYPE

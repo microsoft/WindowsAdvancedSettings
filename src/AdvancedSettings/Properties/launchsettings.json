@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "Windows Advanced Settings (Package)": {
+      "commandName": "MsixPackage",
+      "doNotLaunchApp": false,
+      "nativeDebugging": false
+    },
+    "Windows Advanced Settings (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

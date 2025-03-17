@@ -1,0 +1,7 @@
+﻿CoRegisterClassObject
+CoRevokeClassObject
+CoResumeClassObjects
+MEMORYSTATUSEX
+GlobalMemoryStatusEx
+CoCreateInstance
+GetCurrentPackageFullName

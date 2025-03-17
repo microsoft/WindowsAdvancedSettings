@@ -1,0 +1,8 @@
+﻿<xml
+    xmlns:genTemplate="http://schemas.microsoft.com/appx/developer/templatestudio">
+    <genTemplate:Metadata>
+        <genTemplate:Item Name="generator" Value="Template Studio"/>
+        <genTemplate:Item Name="wizardVersion" Version="v5.2.1" />
+        <genTemplate:Item Name="appmodel" Value="Desktop" />
+    </genTemplate:Metadata>
+</xml>

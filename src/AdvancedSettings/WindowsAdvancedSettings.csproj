@@ -1,0 +1,123 @@
+﻿<!-- Copyright (c) Microsoft Corporation.. -->
+<!-- Licensed under the MIT License. -->
+
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="$(SolutionDir)ToolingVersions.props" />
+  <Import Project="$(SolutionDir)Directory.CppBuild.props" />
+  
+  <!-- Debug builds produce a console app; otherwise a Windows app -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' != 'Debug'">
+    <OutputType>WinExe</OutputType>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <RootNamespace>WindowsAdvancedSettings</RootNamespace>
+    <BuildRing Condition="'$(BuildRing)'==''">Dev</BuildRing>
+    <ApplicationIcon Condition="'$(BuildRing)'=='Dev'">Assets\Dev\DevHome_Dev.ico</ApplicationIcon>
+    <ApplicationIcon Condition="'$(BuildRing)'=='Stable'">Assets\Release\DevHome_Preview.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Platforms>x86;x64;arm64</Platforms>
+    <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
+    <PublishProfile Condition="'$(BuildingInsideVisualStudio)' != 'True'">Properties\PublishProfiles\win-$(Platform).pubxml</PublishProfile>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UseWinUI>true</UseWinUI>
+    <SelfContained>true</SelfContained>
+    <EnableMsixTooling>true</EnableMsixTooling>
+    <PublishReadyToRunEmitSymbols>true</PublishReadyToRunEmitSymbols>
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+  </PropertyGroup>
+
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <ControlFlowGuard>Guard</ControlFlowGuard>
+      <SpectreMitigation>Spectre</SpectreMitigation>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.106">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Windows.CsWinRT" Version="2.0.4" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.22621.2428" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.5.240802000" />
+    <PackageReference Include="Serilog" Version="4.0.1" />
+    <PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0" />
+    <PackageReference Include="Serilog.Settings.Configuration" Version="8.0.2" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+  </ItemGroup>
+
+
+  <!-- To build with the correct logo assets, only include the ones for the current build ring.
+       Place them in a common location, so references to them don't need to adjust for build ring. -->
+  <ItemGroup>
+    <Content Remove="Assets\Release\*" />
+    <Content Remove="Assets\Dev\*" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <Content Include="Assets\Dev\**" Link="Assets\Logos\%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
+    <Content Include="Assets\Dev\DevHome_Dev.ico" Link="Assets\DevHome.ico" CopyToOutputDirectory="Always" />
+    <AppxManifest Include="Package-Dev.appxmanifest">
+      <SubType>Designer</SubType>
+    </AppxManifest>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(Configuration)' == 'Release'">
+    <Content Include="Assets\Release\**" Link="Assets\Logos\%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
+    <Content Include="Assets\Release\DevHome_Preview.ico" Link="Assets\DevHome.ico" CopyToOutputDirectory="Always" />
+    <AppxManifest Include="Package.appxmanifest">
+      <SubType>Designer</SubType>
+    </AppxManifest>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Manifest Include="$(ApplicationManifest)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
+    <ProjectCapability Include="Msix" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
+    <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
+  </PropertyGroup>
+
+  <!-- Third party notice file -->
+  <ItemGroup>
+    <Content Include="$(SolutionDir)NOTICE.txt">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>Assets\NOTICE.txt</Link>
+    </Content>
+  </ItemGroup>
+
+  <!-- Tester is only included in Dev builds -->
+  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+    <ProjectReference Include="..\..\test\AdvancedSettings.Tester\AdvancedSettings.Tester.csproj" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\Common\WindowsAdvancedSettings.Common.csproj" />
+    <ProjectReference Include="..\FileExplorerGitIntegration\FileExplorerGitIntegration.csproj" />
+    <ProjectReference Include="..\FileExplorerSourceControlIntegration\FileExplorerSourceControlIntegration.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <DefineConstants Condition="'$(BuildRing)'=='Stable'">$(DefineConstants);STABLE_BUILD</DefineConstants>
+    <TargetFramework>net8.0-windows10.0.22621.0</TargetFramework>
+  </PropertyGroup>
+</Project>

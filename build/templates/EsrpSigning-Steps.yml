@@ -1,0 +1,22 @@
+parameters:
+  - name: displayName
+    type: string
+    default: ESRP Code Signing
+  - name: inputs
+    type: object
+    default: {}
+
+steps:
+  - task: EsrpCodeSigning@5
+    displayName: ${{ parameters.displayName }}
+    inputs:
+      ConnectedServiceName: $(EsrpConnectedServiceName)
+      AppRegistrationClientId: $(EsrpAppRegistrationClientId)
+      AppRegistrationTenantId: $(EsrpAppRegistrationTenantId)
+      AuthAKVName: $(EsrpAuthAKVName)
+      AuthCertName: $(EsrpAuthCertName)
+      AuthSignCertName: $(EsrpAuthSignCertName)
+      SessionTimeout: '60'
+      MaxConcurrency: '50'
+      MaxRetryAttempts: '5'
+      ${{ insert }}: ${{ parameters.inputs }}

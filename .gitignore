@@ -184,7 +184,6 @@ publish/
 *.azurePubxml
 # Note: Comment the next line if you want to checkin your web deploy settings,
 # but database connection strings (with potential passwords) will be unencrypted
-*.pubxml
 *.publishproj
 
 # Microsoft Azure Web App publish settings. Comment the next line if you want to
@@ -278,7 +277,7 @@ ServiceFabricBackup/
 # Microsoft Fakes
 FakesAssemblies/
 
-# GhostDoc plugin setting file
+# GhostDoc extension setting file
 *.GhostDoc.xml
 
 # Node.js Tools for Visual Studio
@@ -396,3 +395,6 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# Certificates
+*.cer
