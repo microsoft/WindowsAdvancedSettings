@@ -16,7 +16,7 @@ extends:
       roslyn:
         enabled: true
       arrow:
-        serviceConnection: WindowsAdvancedSettings Build VM Generation
+        serviceConnection: DevHome Build VM Generation
     pool:
       name: Azure-Pipelines-1ESPT-ExDShared
       image: windows-2022
@@ -31,8 +31,8 @@ extends:
         steps:
         - task: AzureKeyVault@1
           inputs:
-            azureSubscription: 'WindowsAdvancedSettingsAzureServiceConnection'
-            KeyVaultName: 'WindowsAdvancedSettingsKeyVault'
+            azureSubscription: 'DevHomeAzureServiceConnection'
+            KeyVaultName: 'DevHomeKeyVault'
             SecretsFilter: 'GitHubPAT'
             RunAsPreJob: false
             
