@@ -9,7 +9,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <StartupObject></StartupObject>
     <EnableMsixTooling>false</EnableMsixTooling>
-    <PublishProfile>Properties\PublishProfiles\win10-$(Platform).pubxml</PublishProfile>
+    <PublishProfileFullPath Condition="'$(BuildingInsideVisualStudio)' != 'True'">$(SolutionDir)\src\Common\PublishProfiles\win-$(Platform).pubxml</PublishProfileFullPath>
     <UseWinUI>false</UseWinUI>
     <Platforms>x86;x64;arm64</Platforms>
     <SelfContained>true</SelfContained>
