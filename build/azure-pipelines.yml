@@ -63,10 +63,11 @@ extends:
 
             - task: NuGetAuthenticate@1
 
-            - task: PowerShell@2
-              displayName: Replace Stubbed Files
-              inputs:
-                filePath: 'build/scripts/Unstub.ps1'
+            # Telemetry temporarily removed, this script will fail because there is no telemetry project.
+            # - task: PowerShell@2
+            #   displayName: Replace Stubbed Files
+            #   inputs:
+            #     filePath: 'build/scripts/Unstub.ps1'
 
             - task: PowerShell@2
               displayName: Use internal nuget feed
