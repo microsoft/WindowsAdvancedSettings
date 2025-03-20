@@ -4,32 +4,45 @@ trigger:
 - release
 
 parameters:
-  - name: SignOutput
-    type: boolean
-    default: False
-  - name: Platforms
-    type: object
-    default:
-    - x86
-    - x64
-    - arm64
-  - name: Configurations
-    type: object
-    default:
-    - debug
-    - release
+- name: SignOutput
+  type: boolean
+  default: False
+- name: Platforms
+  type: object
+  default:
+  - x86
+  - x64
+  - arm64
+- name: Configurations
+  type: object
+  default:
+  - Debug
+  - Release
+- name: "holdTrigger"
+  displayName: CloudTest HoldTrigger setting
+  type: string
+  default: None
+  values:
+  - None
+  - Completion
+  - Execution
+  - Failure
+  - Timeout
 
 variables:
+ # MSIXVersion's second part should always be odd to account for stub app's version
   MSIXVersion: '0.1200'
   solution: '**/WindowsAdvancedSettings.sln'
+  VersionOfSDK: '0.700'
   appxPackageDir: 'AppxPackages'
   testOutputArtifactDir: 'TestResults'
-  DisableDockerDetector: true
-  cfsNpmWarnLevel: 'warn'
-  cfsCargoWarnLevel: 'warn'
 
 resources:
   repositories:
+  - repository: templates_onebranch
+    type: git
+    name: OneBranch.Pipelines/GovernedTemplates
+    ref: refs/heads/main
   - repository: m365Pipelines
     type: git
     name: 1ESPipelineTemplates/M365GPT
@@ -39,10 +52,16 @@ extends:
   template: v1/M365.Official.PipelineTemplate.yml@m365Pipelines
   parameters:
     sdl:
+      binskim:
+        break: false
+        scanOutputDirectoryOnly: true
       roslyn:
         enabled: true
       arrow:
         serviceConnection: DevHome Build VM Generation
+      sourceRepositoriesToScan:
+        include:
+        - repository: git://Dart/DevHomeStub
       baseline:
         baselineFile: $(Build.SourcesDirectory)\guardian\SDL\.gdnbaselines
     pool:
@@ -52,47 +71,60 @@ extends:
     customBuildTags:
     - ES365AIMigrationTooling
     stages:
-    - stage: Build_Msix
+    - stage: Build_StubPackages
+      dependsOn: []
+      jobs:
+      - job: Build_StubPackages
+        steps:
+        - checkout: self
+          path: s
+
+        - checkout: git://Dart/DevHomeStub
+
+        - task: NuGetToolInstaller@1
+
+        - task: NuGetAuthenticate@1
+
+        - task: PowerShell@2
+          displayName: Build Stub Packages
+          inputs:
+            filePath: 'Build.ps1'
+            arguments: -Configuration "Release" -Version $(MSIXVersion) -BuildStep "stubpackages" -IsAzurePipelineBuild
+
+        templateContext:
+          outputs:
+          - output: pipelineArtifact
+            displayName: 'Publish MSIX Bundle Artifacts'
+            artifactName: MsixBundle_Stub
+            targetPath: DevHomeStub\DevHomeStubPackage\AppxPackages
+
+    - stage: Build_WindowsAdvancedSettings
       dependsOn: []
       jobs:
       - ${{ each configuration in parameters.Configurations }}:
         - ${{ each platform in parameters.Platforms }}:
           - job: Build_${{ platform }}_${{ configuration }}
+            timeoutInMinutes: 120
             steps:
             - task: NuGetToolInstaller@1
 
             - task: NuGetAuthenticate@1
 
-            # Telemetry temporarily removed, this script will fail because there is no telemetry project.
-            # - task: PowerShell@2
-            #   displayName: Replace Stubbed Files
-            #   inputs:
-            #     filePath: 'build/scripts/Unstub.ps1'
-
-            - task: PowerShell@2
-              displayName: Use internal nuget feed
-              inputs:
-                targetType: inline
-                script: >-
-                  Copy-Item (Join-Path $(Build.SourcesDirectory) "build\nuget.config.internal") -Destination (Join-Path $(Build.SourcesDirectory) "nuget.config")
-                pwsh: true
-
-            - task: NuGetCommand@2
-              inputs:
-                command: 'restore'
-                restoreSolution: '$(solution)'
-                feedsToUse: 'config'
-                nugetConfigPath: 'nuget.config'
+            #  No stubbed files present.
+            #- task: PowerShell@2
+            #  displayName: Replace Stubbed Files
+            #  inputs:
+            #    filePath: 'build/scripts/Unstub.ps1'
 
             - task: MicrosoftTDBuild.tdbuild-task.tdbuild-task.TouchdownBuildTask@4
               displayName: Send and Download Localization Files for Artifacts
               condition: and(eq(variables['EnableLocalization'], 'true'), eq(variables['UpdateLocalization'], 'true'))
               inputs:
-                teamId: 89242
+                teamId: 71220
                 TDBuildServiceConnection: $(TouchdownServiceConnection)
                 authType: SubjectNameIssuer
                 resourceFilePath: |
-                  **\en-US\*.resw;P:466
+                  **\en-US\*.resw
                   **\en-US\PDP.xml
                 outputDirectoryRoot: LocOutput
                 localizationTarget: true
@@ -104,11 +136,11 @@ extends:
               condition: eq(variables['EnableLocalization'], 'true')
               retryCountOnTaskFailure: 2
               inputs:
-                teamId: 89242
+                teamId: 71220
                 TDBuildServiceConnection: $(TouchdownServiceConnection)
                 authType: SubjectNameIssuer
                 resourceFilePath: |
-                  **\en-US\*.resw;P:466
+                  **\en-US\*.resw
                   **\en-US\PDP.xml
                 localizationTarget: false
                 appendRelativeDir: true
@@ -133,21 +165,46 @@ extends:
               displayName: Archive Loc Output for Submission
               condition: and(eq(variables['EnableLocalization'], 'true'), eq(variables['UpdateLocalization'], 'true'))
               inputs:
-                PathtoPublish: LocOutput.tar.gz
-                ArtifactName: LocOutput
                 targetType: inline
                 script: >-
                   New-Item -Path 'locArchive' -ItemType Directory
-                  
+
                   tar czf locArchive\LocOutput.tar.gz LocOutput
                 pwsh: true
 
             - task: PowerShell@2
-              displayName: Build WindowsAdvancedSettings
+              displayName: Build Windows Advanced Settings
               retryCountOnTaskFailure: 2
               inputs:
-                filePath: 'build/scripts/Build.ps1'
-                arguments: -Platform "${{ platform }}" -Configuration "${{ configuration }}" -Version $(MSIXVersion) -BuildStep "msix" -AzureBuildingBranch "$(BuildingBranch)" -IsAzurePipelineBuild
+                filePath: 'Build.ps1'
+                arguments: -Platform "${{ platform }}" -Configuration "${{ configuration }}" -Version $(MSIXVersion) -BuildStep "fullMsix" -AzureBuildingBranch "$(BuildingBranch)" -IsAzurePipelineBuild
+
+            - task: PowerShell@2
+              displayName: Move BinLog to output directory
+              inputs:
+                targetType: inline
+                script: >-
+                  Move-Item -Path $(Build.SourcesDirectory)\WindowsAdvancedSettings.${{ platform }}.${{ configuration }}.binlog -Destination $(Build.SourcesDirectory)\src\bin -Force
+                pwsh: true
+
+            - template: ./build/templates/publish-symbolrequestprod-api.yml@self
+              parameters:
+                includePublicSymbolServer: true
+                symbolProject: 'WindowsAdvancedSettings'
+                subscription: $(SymbolSubscription)
+                indexSources: true
+                symbolsArtifactName: 'WindowsAdvancedSettings_${{ platform }}_${{ configuration }}'
+                symbolsVersion: '$(BuildingBranch)$(Build.BuildNumber)'
+                searchPattern: >-
+                  $(Build.SourcesDirectory)\**\bin\**\*.pdb
+
+                  $(Build.SourcesDirectory)\**\bin\**\*.exe
+
+                  $(Build.SourcesDirectory)\**\bin\**\*.dll
+
+                  $(Build.SourcesDirectory)\**\obj\**\*.pdb
+
+                  $(Build.SourcesDirectory)\**\obj\**\windowsadvancedsettings.r2r.dll
 
             - template: ./build/templates/EsrpSigning-Steps.yml@self
               parameters:
@@ -157,11 +214,11 @@ extends:
                   Pattern: '*.msix'
                   UseMinimatch: true
                   signConfigType: inlineSignParams
-                  inlineOperation: |
+                  inlineOperation: >-
                     [
                       {
                         "keycode": "CP-230012",
-                        "operationSetCode": "SigntoolSign",
+                        "operationSetCode": "SigntoolvNextSign",
                         "parameters": [
                           {
                             "parameterName": "OpusName",
@@ -200,111 +257,91 @@ extends:
             # - task: APIScan@2
             #   inputs:
             #     softwareFolder: '$(Build.StagingDirectory)'
-            #     softwareName: 'Windows Advanced Settings'
+            #     softwareName: 'Dev Home'
             #     softwareVersionNum: '1.0'
             #     softwareBuildNum: '$(Build.BuildId)'
             #     symbolsFolder: 'SRV*http://symweb'
             #   env:
             #     AzureServicesAuthConnectionString: $(ApiScanConnectionString)
 
-            - task: Windows Application Driver@0
-              condition: and(always(), eq('${{ platform}}', 'x64'))
+            - task: CopyFiles@2
+              displayName: Copy Unit Test DLLs
               inputs:
-                OperationType: 'Start'
-
-            - task: PowerShell@2
-              displayName: 'Run Unittests'
-              condition: eq('${{ platform}}', 'x64')
-              retryCountOnTaskFailure: 2
-              inputs:
-                filePath: 'build/scripts/Test.ps1'
-                arguments: -Platform "${{ platform }}" -Configuration "${{ configuration }}" -IsAzurePipelineBuild
-
-            - task: Windows Application Driver@0
-              condition: and(always(), eq('${{ platform}}', 'x64'))
-              inputs:
-                OperationType: 'Stop'
-
-            - task: PublishTestResults@2
-              displayName: 'Add Test Results to Azure'
-              condition: and(always(), eq('${{ platform}}', 'x64'))
-              inputs:
-                testResultsFormat: 'VSTest'
-                testResultsFiles: '*.trx'
-                searchFolder: '$(testOutputArtifactDir)'
-                mergeTestResults: true
-                failTaskOnFailedTests: true 
-                testRunTitle: '$(Agent.JobName)'
-                buildPlatform: '${{ platform }}'
-                buildConfiguration: '${{ configuration }}'
-
-            - task: PublishSymbols@2
-              displayName: Publish Symbols
-              inputs:
-                SearchPattern: >-
-                  $(Build.SourcesDirectory)\BuildOutput\**\*.pdb
-
-                  $(Build.SourcesDirectory)\obj\**\*.r2r.ni.pdb
-                IndexSources: true
-                SymbolServerType: TeamServices
-                SymbolsProduct: WindowsAdvancedSettings
+                #SourceFolder: # string. Source Folder.
+                Contents: 'test/bin/**/*' # string. Required. Contents. Default: *
+                targetFolder: '$(Build.ArtifactStagingDirectory)\unittest'
 
             templateContext:
               outputs:
+              - output: pipelineArtifact
+                displayName: 'Publish Artifact: Binaries'
+                artifactName: Binaries_${{ platform }}_${{ configuration }}
+                targetPath: $(Build.SourcesDirectory)\src\bin
+                sbomPackageName: windowsadvancedsettings.binaries
+                sbomPackageVersion: $(MSIXVersion)
               - output: pipelineArtifact
                 displayName: 'Publish Artifact: LocOutput'
                 condition: and(eq(variables['EnableLocalization'], 'true'), eq(variables['UpdateLocalization'], 'true'))
                 artifactName: LocOutput_${{ platform }}_${{ configuration }}
                 targetPath: LocArchive
-                sbomPackageName: WindowsAdvancedSettings.locoutput
-                sbomPackageVersion: $(MSIXVersion)
-              - output: pipelineArtifact
-                displayName: 'Publish Test Results'
-                condition: and(always(), eq('${{ platform}}', 'x64'))
-                artifactName: TestResults_${{ platform }}_${{ configuration }}
-                targetPath: $(testOutputArtifactDir)
-                sbomPackageName: devhomeazure.testresults
+                sbomPackageName: windowsadvancedsettings.locoutput
                 sbomPackageVersion: $(MSIXVersion)
               - output: pipelineArtifact
                 displayName: Publish MSIX Artifact
                 artifactName: msix_${{ platform }}_${{ configuration }}
                 targetPath: $(appxPackageDir)\${{ configuration }}
-                sbomPackageName: WindowsAdvancedSettings.msixpackage
+                sbomPackageName: windowsadvancedsettings.msixpackage
                 sbomPackageVersion: $(MSIXVersion)
 
     - stage: Build_MsixBundle
-      dependsOn: Build_Msix
-      condition: in(dependencies.Build_Msix.result, 'Succeeded')
+      dependsOn: [Build_DevHome, Build_StubPackages]
+      condition: in(dependencies.Build_DevHome.result, 'Succeeded')
       jobs:
       - job: Build_MsixBundles
         steps:
-          - ${{ each configuration in parameters.Configurations }}:
-            - ${{ each platform in parameters.Platforms }}:
-              - task: DownloadPipelineArtifact@2
-                inputs:
-                  buildType: 'current'
-                  artifactName: msix_${{ platform }}_${{ configuration }}
-                  targetPath: $(appxPackageDir)\${{ configuration }}
-
-            - task: PowerShell@2
-              displayName: Build MsixBundle
+        - ${{ each configuration in parameters.Configurations }}:
+          - ${{ each platform in parameters.Platforms }}:
+            - task: DownloadPipelineArtifact@2
               inputs:
-                filePath: 'build/scripts/Build.ps1'
-                arguments: -Configuration "${{ configuration }}" -Version $(MSIXVersion) -BuildStep "msixbundle" -IsAzurePipelineBuild
+                buildType: 'current'
+                artifactName: msix_${{ platform }}_${{ configuration }}
+                targetPath: $(appxPackageDir)\${{ configuration }}
 
+          - task: PowerShell@2
+            displayName: Create Stub Directory
+            condition: and(eq(variables['BuildingBranch'], 'release'), eq('${{ configuration }}', 'Release'))
+            inputs:
+              targetType: 'inline'
+              script: New-Item -Path $(appxPackageDir)\${{ configuration }}\AppxMetadata\Stub -ItemType Directory
+
+          - task: DownloadPipelineArtifact@2
+            condition: and(eq(variables['BuildingBranch'], 'release'), eq('${{ configuration }}', 'Release'))
+            inputs:
+              buildType: 'current'
+              artifactName: MsixBundle_Stub
+              targetPath: $(appxPackageDir)\Staging
+
+          - task: PowerShell@2
+            displayName: Unbundle Stub Packages
+            condition: and(eq(variables['BuildingBranch'], 'release'), eq('${{ configuration }}', 'Release'))
+            inputs:
+              filePath: 'build/scripts/UnbundleStubPackage.ps1'
+              arguments: -InputPath $(appxPackageDir)\Staging -OutputLocation $(appxPackageDir)\${{ configuration }}\AppxMetadata\Stub
+
+          - ${{ if and(eq(variables['BuildingBranch'], 'release'), eq('${{ configuration }}', 'Release')) }}:
             - template: ./build/templates/EsrpSigning-Steps.yml@self
               parameters:
-                displayName: Submit *.msixbundle to ESRP for code signing
+                displayName: Submit *.msix to ESRP for code signing
                 inputs:
-                  FolderPath: 'AppxBundles\${{ configuration }}'
-                  Pattern: '*.msixbundle'
+                  FolderPath: '$(appxPackageDir)\${{ configuration }}\AppxMetadata\Stub'
+                  Pattern: '*.msix'
                   UseMinimatch: true
                   signConfigType: inlineSignParams
                   inlineOperation: |
                     [
                       {
                         "keycode": "CP-230012",
-                        "operationSetCode": "SigntoolSign",
+                        "operationSetCode": "SigntoolvNextSign",
                         "parameters": [
                           {
                             "parameterName": "OpusName",
@@ -332,6 +369,52 @@ extends:
                       }
                     ]
 
+          - task: PowerShell@2
+            displayName: Build MsixBundle
+            inputs:
+              filePath: 'Build.ps1'
+              arguments: -Configuration "${{ configuration }}" -Version $(MSIXVersion) -BuildStep "msixbundle" -IsAzurePipelineBuild
+
+          - template: ./build/templates/EsrpSigning-Steps.yml@self
+            parameters:
+              displayName: Submit *.msixbundle to ESRP for code signing
+              inputs:
+                FolderPath: 'AppxBundles\${{ configuration }}'
+                Pattern: '*.msixbundle'
+                UseMinimatch: true
+                signConfigType: inlineSignParams
+                inlineOperation: |
+                  [
+                    {
+                      "keycode": "CP-230012",
+                      "operationSetCode": "SigntoolvNextSign",
+                      "parameters": [
+                        {
+                          "parameterName": "OpusName",
+                          "parameterValue": "Microsoft"
+                        },
+                        {
+                          "parameterName": "OpusInfo",
+                          "parameterValue": "http://www.microsoft.com"
+                        },
+                        {
+                          "parameterName": "PageHash",
+                          "parameterValue": "/NPH"
+                        },
+                        {
+                          "parameterName": "FileDigest",
+                          "parameterValue": "/fd sha256"
+                        },
+                        {
+                          "parameterName": "TimeStamp",
+                          "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+                        }
+                      ],
+                      "toolName": "signtool.exe",
+                      "toolVersion": "6.2.9304.0"
+                    }
+                  ]
+
         templateContext:
           outputs:
           - output: pipelineArtifact
@@ -346,8 +429,7 @@ extends:
             targetPath: AppxBundles\Debug
 
     - stage: Store_Publish
-      dependsOn:
-      - Build_MsixBundle
+      dependsOn: [Build_MsixBundle, Test]
       condition: |
         and
         (
@@ -356,7 +438,7 @@ extends:
         )
       jobs:
       - job: Store_Publish
-        timeoutInMinutes: 300
+        timeoutInMinutes: 360
         steps:
         - task: DownloadPipelineArtifact@2
           inputs:
@@ -369,7 +451,7 @@ extends:
           condition: eq(variables['EnableLocalization'], 'true')
           retryCountOnTaskFailure: 2
           inputs:
-            teamId: 89242
+            teamId: 71220
             TDBuildServiceConnection: $(TouchdownServiceConnection)
             authType: SubjectNameIssuer
             resourceFilePath: |
@@ -385,7 +467,7 @@ extends:
             targetType: inline
             script: >-
               $Files = Get-ChildItem . -R -Filter 'PDP.xml' | ? FullName -Like '*en-US\*\PDP.xml'
-              
+
               $Files | % { Move-Item -Verbose $_.Directory $_.Directory.Parent.Parent -EA:Ignore }
             pwsh: true
 
@@ -407,7 +489,7 @@ extends:
           condition: eq(variables['BuildingBranch'], 'release')
           inputs:
             serviceEndpoint: 'DevHome StoreBroker ServiceConnection'
-            appId: 9MV8F79FGXTR
+            appId: 9N8MHTPHNGVV
             inputMethod: JsonAndZip
             jsonPath: '$(System.DefaultWorkingDirectory)\SBOutDir\DevHomeStoreSubmissionPackage.json'
             zipPath: '$(System.DefaultWorkingDirectory)\SBOutDir\DevHomeStoreSubmissionPackage.zip'
