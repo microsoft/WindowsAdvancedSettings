@@ -389,38 +389,10 @@ extends:
             pwsh: true
 
         - task: MS-RDX-MRO.windows-store-publish-dev.package-task.store-package@3
-          displayName: 'Create Staging StoreBroker Package'
-          condition: eq(variables['BuildingBranch'], 'staging')
-          inputs:
-            serviceEndpoint: 'WindowsAdvancedSettingsCanary StoreBroker ServiceConnection'
-            sbConfigPath: '$(System.DefaultWorkingDirectory)\build\store\canary\SBConfig.json'
-            sourceFolder: 'StorePublish'
-            contents: '*.msixbundle'
-            pdpPath: '$(System.DefaultWorkingDirectory)\build\store\canary\PDPs'
-            pdpMediaPath: '$(System.DefaultWorkingDirectory)\build\store\canary\media'
-            outSBName: DevHomeStoreSubmissionPackage
-            pdpInclude: 'PDP.xml'
-
-        - task: MS-RDX-MRO.windows-store-publish-dev.publish-task.store-publish@3
-          displayName: 'Publish Staging StoreBroker Package'
-          condition: eq(variables['BuildingBranch'], 'staging')
-          inputs:
-            serviceEndpoint: 'WindowsAdvancedSettingsCanary StoreBroker ServiceConnection'
-            appId: 9NBVFRMSFXHW
-            inputMethod: JsonAndZip
-            jsonPath: '$(System.DefaultWorkingDirectory)\SBOutDir\DevHomeStoreSubmissionPackage.json'
-            zipPath: '$(System.DefaultWorkingDirectory)\SBOutDir\DevHomeStoreSubmissionPackage.zip'
-            force: true
-            deletePackages: true
-            numberOfPackagesToKeep: 2
-            jsonZipUpdateMetadata: true
-            updateImages: true
-
-        - task: MS-RDX-MRO.windows-store-publish-dev.package-task.store-package@3
           displayName: 'Create Release StoreBroker Package'
           condition: eq(variables['BuildingBranch'], 'release')
           inputs:
-            serviceEndpoint: 'WindowsAdvancedSettings StoreBroker ServiceConnection'
+            serviceEndpoint: 'DevHome StoreBroker ServiceConnection'
             sbConfigPath: '$(System.DefaultWorkingDirectory)\build\store\preview\SBConfig.json'
             sourceFolder: 'StorePublish'
             contents: '*.msixbundle'
@@ -433,7 +405,7 @@ extends:
           displayName: 'Publish Release StoreBroker Package'
           condition: eq(variables['BuildingBranch'], 'release')
           inputs:
-            serviceEndpoint: 'WindowsAdvancedSettings StoreBroker ServiceConnection'
+            serviceEndpoint: 'DevHome StoreBroker ServiceConnection'
             appId: 9MV8F79FGXTR
             inputMethod: JsonAndZip
             jsonPath: '$(System.DefaultWorkingDirectory)\SBOutDir\DevHomeStoreSubmissionPackage.json'
