@@ -2,7 +2,7 @@
 
 Remove-Item "$($PSScriptRoot)\..\..\src\Telemetry\TelemetryEventSource.cs"
 
-$projFile = "$($PSScriptRoot)\..\..\src\Telemetry\AzureExtension.Telemetry.csproj"
+$projFile = "$($PSScriptRoot)\..\..\src\Telemetry\WindowsAdvancedSettings.Telemetry.csproj"
 $projFileContent = Get-Content $projFile -Encoding UTF8 -Raw
 
 if ($projFileContent.Contains('Microsoft.Telemetry.Inbox.Managed')) {

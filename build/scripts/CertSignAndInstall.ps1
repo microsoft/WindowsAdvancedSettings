@@ -38,7 +38,7 @@ function Invoke-SignPackage([string]$Path) {
     }
 }
 
-function Remove-AzureExtensioneCertificates() {
+function Remove-WindowsAdvancedSettingsCertificates() {
     Get-ChildItem 'Cert:\CurrentUser\My' | Where-Object {$_.FriendlyName -match 'Microsoft.Windows.WindowsAdvancedSettings'} | Remove-Item
     Get-ChildItem 'Cert:\LocalMachine\TrustedPeople' | Where-Object {$_.FriendlyName -match 'Microsoft.Windows.WindowsAdvancedSettings'} | Remove-Item
 }

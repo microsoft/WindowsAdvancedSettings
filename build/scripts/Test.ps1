@@ -16,7 +16,7 @@ Syntax:
       Test.cmd [options]
 
 Description:
-      Runs AzureExtension tests.
+      Runs WindowsAdvancedSettings tests.
 
 Options:
 
@@ -70,29 +70,11 @@ Try {
       if (-not($IsAzurePipelineBuild)) {
         $Package = Get-AppPackage "WindowsAdvancedSettings"
         if ($Package) {
-          Write-Host "Uninstalling old AzureExtension"
+          Write-Host "Uninstalling old WindowsAdvancedSettings"
           Remove-AppPackage -Package $Package.PackageFullName
         }
-        Write-Host "Installing AzureExtension"
+        Write-Host "Installing WindowsAdvancedSettings"
         Add-AppPackage "AppxPackages\$platform\$configuration\WindowsAdvancedSettings.msix"
-      }
-
-      $vstestArgs = @(
-          ("/Platform:$platform"),
-          ("/Logger:trx;LogFileName=AzureExtension.Test-$platform-$configuration.trx"),
-          ("/TestCaseFilter:""TestCategory=Unit"""),
-          ("BuildOutput\$configuration\$platform\AzureExtension.Test\AzureExtension.Test.dll")
-      )
-      $winAppTestArgs = @(
-          ("/Platform:$platform"),
-          ("/Logger:trx;LogFileName=AzureExtension.UITest-$platform-$configuration.trx"),
-          ("BuildOutput\$configuration\$platform\AzureExtension.UITest\AzureExtension.UITest.dll")
-      )
-
-      & $vstestPath $vstestArgs
-      # TODO: UI tests are currently disabled in pipeline until signing is solved
-      if (-not($IsAzurePipelineBuild)) {
-          & $vstestPath $winAppTestArgs
       }
     }
   }

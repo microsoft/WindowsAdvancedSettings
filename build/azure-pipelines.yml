@@ -143,7 +143,7 @@ extends:
                 pwsh: true
 
             - task: PowerShell@2
-              displayName: Build AzureExtension Extension
+              displayName: Build WindowsAdvancedSettings
               retryCountOnTaskFailure: 2
               inputs:
                 filePath: 'build/scripts/Build.ps1'

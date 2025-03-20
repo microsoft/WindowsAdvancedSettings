@@ -1,3 +1,3 @@
-﻿# AzureExtension Test Console
+﻿# WindowsAdvancedSettings Test Console
 
-This is a console project for interacting with the AzureExtension database and project.
+This is a console project for interacting with the WindowsAdvancedSettings database and project.
