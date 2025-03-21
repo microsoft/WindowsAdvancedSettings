@@ -245,23 +245,17 @@ extends:
             templateContext:
               outputs:
               - output: pipelineArtifact
-                displayName: 'Publish Artifact: Binaries'
-                artifactName: Binaries_${{ platform }}_${{ configuration }}
-                targetPath: $(Build.SourcesDirectory)\src\bin
-                sbomPackageName: windowsadvancedsettings.binaries
-                sbomPackageVersion: $(MSIXVersion)
-              - output: pipelineArtifact
                 displayName: 'Publish Artifact: LocOutput'
                 condition: and(eq(variables['EnableLocalization'], 'true'), eq(variables['UpdateLocalization'], 'true'))
                 artifactName: LocOutput_${{ platform }}_${{ configuration }}
                 targetPath: LocArchive
-                sbomPackageName: windowsadvancedsettings.locoutput
+                sbomPackageName: WindowsAdvancedSettings.locoutput
                 sbomPackageVersion: $(MSIXVersion)
               - output: pipelineArtifact
                 displayName: Publish MSIX Artifact
                 artifactName: msix_${{ platform }}_${{ configuration }}
                 targetPath: $(appxPackageDir)\${{ configuration }}
-                sbomPackageName: windowsadvancedsettings.msixpackage
+                sbomPackageName: WindowsAdvancedSettings.msixpackage
                 sbomPackageVersion: $(MSIXVersion)
 
     - stage: Build_MsixBundle
