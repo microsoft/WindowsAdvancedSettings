@@ -294,8 +294,8 @@ extends:
                 sbomPackageVersion: $(MSIXVersion)
 
     - stage: Build_MsixBundle
-      dependsOn: [Build_DevHome, Build_StubPackages]
-      condition: in(dependencies.Build_DevHome.result, 'Succeeded')
+      dependsOn: [Build_WindowsAdvancedSettings, Build_StubPackages]
+      condition: in(dependencies.Build_WindowsAdvancedSettings.result, 'Succeeded')
       jobs:
       - job: Build_MsixBundles
         steps:
@@ -429,7 +429,7 @@ extends:
             targetPath: AppxBundles\Debug
 
     - stage: Store_Publish
-      dependsOn: [Build_MsixBundle, Test]
+      dependsOn: [Build_MsixBundle]
       condition: |
         and
         (
