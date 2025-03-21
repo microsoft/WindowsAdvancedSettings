@@ -59,9 +59,6 @@ extends:
         enabled: true
       arrow:
         serviceConnection: DevHome Build VM Generation
-      sourceRepositoriesToScan:
-        include:
-        - repository: git://Dart/DevHomeStub
       baseline:
         baselineFile: $(Build.SourcesDirectory)\guardian\SDL\.gdnbaselines
     pool:
@@ -71,33 +68,6 @@ extends:
     customBuildTags:
     - ES365AIMigrationTooling
     stages:
-    - stage: Build_StubPackages
-      dependsOn: []
-      jobs:
-      - job: Build_StubPackages
-        steps:
-        - checkout: self
-          path: s
-
-        - checkout: git://Dart/DevHomeStub
-
-        - task: NuGetToolInstaller@1
-
-        - task: NuGetAuthenticate@1
-
-        - task: PowerShell@2
-          displayName: Build Stub Packages
-          inputs:
-            filePath: 'Build.ps1'
-            arguments: -Configuration "Release" -Version $(MSIXVersion) -BuildStep "stubpackages" -IsAzurePipelineBuild
-
-        templateContext:
-          outputs:
-          - output: pipelineArtifact
-            displayName: 'Publish MSIX Bundle Artifacts'
-            artifactName: MsixBundle_Stub
-            targetPath: DevHomeStub\DevHomeStubPackage\AppxPackages
-
     - stage: Build_WindowsAdvancedSettings
       dependsOn: []
       jobs:
