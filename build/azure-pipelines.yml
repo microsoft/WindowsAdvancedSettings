@@ -146,7 +146,7 @@ extends:
               displayName: Build Windows Advanced Settings
               retryCountOnTaskFailure: 2
               inputs:
-                filePath: 'Build.ps1'
+                filePath: 'build/scripts/Build.ps1'
                 arguments: -Platform "${{ platform }}" -Configuration "${{ configuration }}" -Version $(MSIXVersion) -BuildStep "fullMsix" -AzureBuildingBranch "$(BuildingBranch)" -IsAzurePipelineBuild
 
             - task: PowerShell@2
@@ -321,7 +321,7 @@ extends:
           - task: PowerShell@2
             displayName: Build MsixBundle
             inputs:
-              filePath: 'Build.ps1'
+              filePath: './build/scripts/Build.ps1'
               arguments: -Configuration "${{ configuration }}" -Version $(MSIXVersion) -BuildStep "msixbundle" -IsAzurePipelineBuild
 
           - template: ./build/templates/EsrpSigning-Steps.yml@self
