@@ -147,7 +147,7 @@ extends:
               retryCountOnTaskFailure: 2
               inputs:
                 filePath: 'build/scripts/Build.ps1'
-                arguments: -Platform "${{ platform }}" -Configuration "${{ configuration }}" -Version $(MSIXVersion) -BuildStep "fullMsix" -AzureBuildingBranch "$(BuildingBranch)" -IsAzurePipelineBuild
+                arguments: -Platform "${{ platform }}" -Configuration "${{ configuration }}" -Version $(MSIXVersion) -BuildStep "msix" -AzureBuildingBranch "$(BuildingBranch)" -IsAzurePipelineBuild
 
             # - task: PowerShell@2
             #   displayName: Move BinLog to output directory
