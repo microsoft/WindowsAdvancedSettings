@@ -149,13 +149,13 @@ extends:
                 filePath: 'build/scripts/Build.ps1'
                 arguments: -Platform "${{ platform }}" -Configuration "${{ configuration }}" -Version $(MSIXVersion) -BuildStep "fullMsix" -AzureBuildingBranch "$(BuildingBranch)" -IsAzurePipelineBuild
 
-            - task: PowerShell@2
-              displayName: Move BinLog to output directory
-              inputs:
-                targetType: inline
-                script: >-
-                  Move-Item -Path $(Build.SourcesDirectory)\WindowsAdvancedSettings.${{ platform }}.${{ configuration }}.binlog -Destination $(Build.SourcesDirectory)\src\bin -Force
-                pwsh: true
+            # - task: PowerShell@2
+            #   displayName: Move BinLog to output directory
+            #   inputs:
+            #     targetType: inline
+            #     script: >-
+            #       Move-Item -Path $(Build.SourcesDirectory)\WindowsAdvancedSettings.${{ platform }}.${{ configuration }}.binlog -Destination $(Build.SourcesDirectory)\src\bin -Force
+            #     pwsh: true
 
             - template: ./build/templates/publish-symbolrequestprod-api.yml@self
               parameters:
