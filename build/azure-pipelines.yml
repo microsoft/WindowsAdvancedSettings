@@ -264,7 +264,7 @@ extends:
                 sbomPackageVersion: $(MSIXVersion)
 
     - stage: Build_MsixBundle
-      dependsOn: [Build_WindowsAdvancedSettings, Build_StubPackages]
+      dependsOn: [Build_WindowsAdvancedSettings]
       condition: in(dependencies.Build_WindowsAdvancedSettings.result, 'Succeeded')
       jobs:
       - job: Build_MsixBundles
@@ -277,33 +277,12 @@ extends:
                 artifactName: msix_${{ platform }}_${{ configuration }}
                 targetPath: $(appxPackageDir)\${{ configuration }}
 
-          - task: PowerShell@2
-            displayName: Create Stub Directory
-            condition: and(eq(variables['BuildingBranch'], 'release'), eq('${{ configuration }}', 'Release'))
-            inputs:
-              targetType: 'inline'
-              script: New-Item -Path $(appxPackageDir)\${{ configuration }}\AppxMetadata\Stub -ItemType Directory
-
-          - task: DownloadPipelineArtifact@2
-            condition: and(eq(variables['BuildingBranch'], 'release'), eq('${{ configuration }}', 'Release'))
-            inputs:
-              buildType: 'current'
-              artifactName: MsixBundle_Stub
-              targetPath: $(appxPackageDir)\Staging
-
-          - task: PowerShell@2
-            displayName: Unbundle Stub Packages
-            condition: and(eq(variables['BuildingBranch'], 'release'), eq('${{ configuration }}', 'Release'))
-            inputs:
-              filePath: 'build/scripts/UnbundleStubPackage.ps1'
-              arguments: -InputPath $(appxPackageDir)\Staging -OutputLocation $(appxPackageDir)\${{ configuration }}\AppxMetadata\Stub
-
           - ${{ if and(eq(variables['BuildingBranch'], 'release'), eq('${{ configuration }}', 'Release')) }}:
             - template: ./build/templates/EsrpSigning-Steps.yml@self
               parameters:
                 displayName: Submit *.msix to ESRP for code signing
                 inputs:
-                  FolderPath: '$(appxPackageDir)\${{ configuration }}\AppxMetadata\Stub'
+                  FolderPath: '$(appxPackageDir)\${{ configuration }}\AppxMetadata'
                   Pattern: '*.msix'
                   UseMinimatch: true
                   signConfigType: inlineSignParams
