@@ -157,24 +157,25 @@ extends:
             #       Move-Item -Path $(Build.SourcesDirectory)\WindowsAdvancedSettings.${{ platform }}.${{ configuration }}.binlog -Destination $(Build.SourcesDirectory)\src\bin -Force
             #     pwsh: true
 
-            - template: ./build/templates/publish-symbolrequestprod-api.yml@self
-              parameters:
-                includePublicSymbolServer: true
-                symbolProject: 'WindowsAdvancedSettings'
-                subscription: $(SymbolSubscription)
-                indexSources: true
-                symbolsArtifactName: 'WindowsAdvancedSettings_${{ platform }}_${{ configuration }}'
-                symbolsVersion: '$(BuildingBranch)$(Build.BuildNumber)'
-                searchPattern: >-
-                  $(Build.SourcesDirectory)\**\bin\**\*.pdb
+            # Symbols not yet defined.
+            # - template: ./build/templates/publish-symbolrequestprod-api.yml@self
+            #   parameters:
+            #     includePublicSymbolServer: true
+            #     symbolProject: 'WindowsAdvancedSettings'
+            #     subscription: $(SymbolSubscription)
+            #     indexSources: true
+            #     symbolsArtifactName: 'WindowsAdvancedSettings_${{ platform }}_${{ configuration }}'
+            #     symbolsVersion: '$(BuildingBranch)$(Build.BuildNumber)'
+            #     searchPattern: >-
+            #       $(Build.SourcesDirectory)\**\bin\**\*.pdb
 
-                  $(Build.SourcesDirectory)\**\bin\**\*.exe
+            #       $(Build.SourcesDirectory)\**\bin\**\*.exe
 
-                  $(Build.SourcesDirectory)\**\bin\**\*.dll
+            #       $(Build.SourcesDirectory)\**\bin\**\*.dll
 
-                  $(Build.SourcesDirectory)\**\obj\**\*.pdb
+            #       $(Build.SourcesDirectory)\**\obj\**\*.pdb
 
-                  $(Build.SourcesDirectory)\**\obj\**\windowsadvancedsettings.r2r.dll
+            #       $(Build.SourcesDirectory)\**\obj\**\windowsadvancedsettings.r2r.dll
 
             - template: ./build/templates/EsrpSigning-Steps.yml@self
               parameters:
