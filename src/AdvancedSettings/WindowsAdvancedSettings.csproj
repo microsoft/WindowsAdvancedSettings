@@ -17,7 +17,7 @@
     <RootNamespace>WindowsAdvancedSettings</RootNamespace>
     <BuildRing Condition="'$(BuildRing)'==''">Dev</BuildRing>
     <ApplicationIcon Condition="'$(BuildRing)'=='Dev'">Assets\Dev\DevHome_Dev.ico</ApplicationIcon>
-    <ApplicationIcon Condition="'$(BuildRing)'=='Stable'">Assets\Release\DevHome_Preview.ico</ApplicationIcon>
+    <ApplicationIcon Condition="'$(BuildRing)'=='Stable'">Assets\Production\DevHome_Preview.ico</ApplicationIcon>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Platforms>x86;x64;arm64</Platforms>
     <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
@@ -72,8 +72,8 @@
   </ItemGroup>
 
   <ItemGroup Condition="'$(Configuration)' == 'Release'">
-    <Content Include="Assets\Release\**" Link="Assets\Logos\%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
-    <Content Include="Assets\Release\DevHome_Preview.ico" Link="Assets\DevHome.ico" CopyToOutputDirectory="Always" />
+    <Content Include="Assets\Production\**" Link="Assets\Logos\%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
+    <Content Include="Assets\Production\DevHome_Preview.ico" Link="Assets\DevHome.ico" CopyToOutputDirectory="Always" />
     <AppxManifest Include="Package.appxmanifest">
       <SubType>Designer</SubType>
     </AppxManifest>

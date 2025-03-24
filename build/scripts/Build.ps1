@@ -93,6 +93,8 @@ Try {
             ("/p:BuildRing=$buildRing")
         )
 
+        Write-Host "msbuild: '"..$msbuildPath.."'  args: '"..$msbuildArgs.."'"
+
         & $msbuildPath $msbuildArgs
         if (-not($IsAzurePipelineBuild) -And $isAdmin) {
           # This can fail if SignTool.exe is not found, which is part of the Windows SDK.
