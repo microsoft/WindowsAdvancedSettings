@@ -31,7 +31,7 @@ parameters:
 
 variables:
  # MSIXVersion's second part should always be odd to account for stub app's version
-  MSIXVersion: '0.1200'
+  MSIXVersion: '0.2101'
   solution: '**/WindowsAdvancedSettings.sln'
   VersionOfSDK: '0.700'
   appxPackageDir: 'AppxPackages'
