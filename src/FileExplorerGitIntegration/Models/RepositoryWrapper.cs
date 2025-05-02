@@ -92,7 +92,7 @@ public sealed class RepositoryWrapper : IDisposable
         }
 
         var normalizedRootFolderPath = rootFolder.Replace(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
-        if (output.TrimEnd('\n') != normalizedRootFolderPath)
+        if (!output.TrimEnd('\n').Equals(normalizedRootFolderPath, StringComparison.OrdinalIgnoreCase))
         {
             _log.Error($"Not a valid git repository root path: {rootFolder}");
             throw new ArgumentException($"Not a valid git repository root path: {rootFolder}");
