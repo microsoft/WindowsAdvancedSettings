@@ -289,63 +289,63 @@ extends:
                 artifactName: msix_${{ platform }}_${{ configuration }}
                 targetPath: $(appxPackageDir)\${{ configuration }}
 
-            - task: PowerShell@2
-              displayName: Create Stub Directory
-              inputs:
-                targetType: 'inline'
-                script: New-Item -Path $(appxPackageDir)\${{ configuration }}\AppxMetadata\Stub -ItemType Directory
+          - task: PowerShell@2
+            displayName: Create Stub Directory
+            inputs:
+              targetType: 'inline'
+              script: New-Item -Path $(appxPackageDir)\${{ configuration }}\AppxMetadata\Stub -ItemType Directory
 
-            - task: DownloadPipelineArtifact@2
-              inputs:
-                buildType: 'current'
-                artifactName: MsixBundle_Stub
-                targetPath: $(appxPackageDir)\Staging
+          - task: DownloadPipelineArtifact@2
+            inputs:
+              buildType: 'current'
+              artifactName: MsixBundle_Stub
+              targetPath: $(appxPackageDir)\Staging
 
-            - task: PowerShell@2
-              displayName: Unbundle Stub Packages
-              inputs:
-                filePath: 'build/scripts/UnbundleStubPackage.ps1'
-                arguments: -InputPath $(appxPackageDir)\Staging -OutputLocation $(appxPackageDir)\${{ configuration }}\AppxMetadata\Stub
+          - task: PowerShell@2
+            displayName: Unbundle Stub Packages
+            inputs:
+              filePath: 'build/scripts/UnbundleStubPackage.ps1'
+              arguments: -InputPath $(appxPackageDir)\Staging -OutputLocation $(appxPackageDir)\${{ configuration }}\AppxMetadata\Stub
 
-            - template: ./build/templates/EsrpSigning-Steps.yml@self
-              parameters:
-                displayName: Submit *.msix to ESRP for code signing
-                inputs:
-                  FolderPath: '$(appxPackageDir)\${{ configuration }}\AppxMetadata'
-                  Pattern: '*.msix'
-                  UseMinimatch: true
-                  signConfigType: inlineSignParams
-                  inlineOperation: |
-                    [
-                      {
-                        "keycode": "CP-230012",
-                        "operationSetCode": "SigntoolvNextSign",
-                        "parameters": [
-                          {
-                            "parameterName": "OpusName",
-                            "parameterValue": "Microsoft"
-                          },
-                          {
-                            "parameterName": "OpusInfo",
-                            "parameterValue": "http://www.microsoft.com"
-                          },
-                          {
-                            "parameterName": "PageHash",
-                            "parameterValue": "/NPH"
-                          },
-                          {
-                            "parameterName": "FileDigest",
-                            "parameterValue": "/fd sha256"
-                          },
-                          {
-                            "parameterName": "TimeStamp",
-                            "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
-                          }
-                        ],
-                        "toolName": "signtool.exe",
-                        "toolVersion": "6.2.9304.0"
-                      }
-                    ]
+          - template: ./build/templates/EsrpSigning-Steps.yml@self
+            parameters:
+              displayName: Submit *.msix to ESRP for code signing
+              inputs:
+                FolderPath: '$(appxPackageDir)\${{ configuration }}\AppxMetadata'
+                Pattern: '*.msix'
+                UseMinimatch: true
+                signConfigType: inlineSignParams
+                inlineOperation: |
+                  [
+                    {
+                      "keycode": "CP-230012",
+                      "operationSetCode": "SigntoolvNextSign",
+                      "parameters": [
+                        {
+                          "parameterName": "OpusName",
+                          "parameterValue": "Microsoft"
+                        },
+                        {
+                          "parameterName": "OpusInfo",
+                          "parameterValue": "http://www.microsoft.com"
+                        },
+                        {
+                          "parameterName": "PageHash",
+                          "parameterValue": "/NPH"
+                        },
+                        {
+                          "parameterName": "FileDigest",
+                          "parameterValue": "/fd sha256"
+                        },
+                        {
+                          "parameterName": "TimeStamp",
+                          "parameterValue": "/tr \"http://rfc3161.gtm.corp.microsoft.com/TSS/HttpTspServer\" /td sha256"
+                        }
+                      ],
+                      "toolName": "signtool.exe",
+                      "toolVersion": "6.2.9304.0"
+                    }
+                  ]
 
           - task: PowerShell@2
             displayName: Build MsixBundle
@@ -393,43 +393,43 @@ extends:
                     }
                   ]
 
-          - task: MicrosoftTDBuild.tdbuild-task.tdbuild-task.TouchdownBuildTask@5
-            displayName: Download and Use Localization Files
-            condition: eq(variables['EnableLocalization'], 'true')
-            retryCountOnTaskFailure: 2
-            inputs:
-              teamId: 71220
-              FederatedIdentityTDBuildServiceConnection: $(TouchdownServiceConnection)
-              authType: FederatedIdentityTDBuild
-              resourceFilePath: |
-                **\en-US\PDP.xml
-              localizationTarget: false
-              appendRelativeDir: true
-              pseudoSetting: Included
+        - task: MicrosoftTDBuild.tdbuild-task.tdbuild-task.TouchdownBuildTask@5
+          displayName: Download and Use Localization Files
+          condition: eq(variables['EnableLocalization'], 'true')
+          retryCountOnTaskFailure: 2
+          inputs:
+            teamId: 71220
+            FederatedIdentityTDBuildServiceConnection: $(TouchdownServiceConnection)
+            authType: FederatedIdentityTDBuild
+            resourceFilePath: |
+              **\en-US\PDP.xml
+            localizationTarget: false
+            appendRelativeDir: true
+            pseudoSetting: Included
 
-          - task: PowerShell@2
-            displayName: Move Loc files one level up
-            condition: eq(variables['EnableLocalization'], 'true')
-            inputs:
-              targetType: inline
-              script: >-
-                $Files = Get-ChildItem . -R -Filter 'PDP.xml' | ? FullName -Like '*en-US\*\PDP.xml'
+        - task: PowerShell@2
+          displayName: Move Loc files one level up
+          condition: eq(variables['EnableLocalization'], 'true')
+          inputs:
+            targetType: inline
+            script: >-
+              $Files = Get-ChildItem . -R -Filter 'PDP.xml' | ? FullName -Like '*en-US\*\PDP.xml'
 
-                $Files | % { Move-Item -Verbose $_.Directory $_.Directory.Parent.Parent -EA:Ignore }
-              pwsh: true
+              $Files | % { Move-Item -Verbose $_.Directory $_.Directory.Parent.Parent -EA:Ignore }
+            pwsh: true
 
-          - task: MS-RDX-MRO.windows-store-publish-dev.package-task.store-package@3
-            displayName: 'Create Release StoreBroker Package'
-            condition: eq(variables['BuildingBranch'], 'release')
-            inputs:
-              serviceEndpoint: 'DevHome StoreBroker ServiceConnection'
-              sbConfigPath: '$(System.DefaultWorkingDirectory)\build\store\SBConfig.json'
-              sourceFolder: 'AppxBundles\Release'
-              contents: '*.msixbundle'
-              pdpPath: '$(System.DefaultWorkingDirectory)\build\store\PDPs'
-              pdpMediaPath: '$(System.DefaultWorkingDirectory)\build\store\media'
-              outSBName: WindowsAdvancedSettingsSubmissionPackage
-              pdpInclude: 'PDP.xml'
+        - task: MS-RDX-MRO.windows-store-publish-dev.package-task.store-package@3
+          displayName: 'Create Release StoreBroker Package'
+          condition: eq(variables['BuildingBranch'], 'release')
+          inputs:
+            serviceEndpoint: 'DevHome StoreBroker ServiceConnection'
+            sbConfigPath: '$(System.DefaultWorkingDirectory)\build\store\SBConfig.json'
+            sourceFolder: 'AppxBundles\Release'
+            contents: '*.msixbundle'
+            pdpPath: '$(System.DefaultWorkingDirectory)\build\store\PDPs'
+            pdpMediaPath: '$(System.DefaultWorkingDirectory)\build\store\media'
+            outSBName: WindowsAdvancedSettingsSubmissionPackage
+            pdpInclude: 'PDP.xml'
 
         templateContext:
           outputs:
