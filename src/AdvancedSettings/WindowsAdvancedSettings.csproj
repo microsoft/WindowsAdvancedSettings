@@ -63,14 +63,14 @@
     <Content Remove="Assets\Dev\*" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+  <ItemGroup Condition="'$(BuildRing)' == 'Dev'">
     <Content Include="Assets\Dev\**" Link="Assets\Logos\%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
     <AppxManifest Include="Package-Dev.appxmanifest">
       <SubType>Designer</SubType>
     </AppxManifest>
   </ItemGroup>
 
-  <ItemGroup Condition="'$(Configuration)' == 'Release'">
+  <ItemGroup Condition="'$(BuildRing)' == 'Stable'">
     <Content Include="Assets\Production\**" Link="Assets\Logos\%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
     <Content Include="Assets\AdvancedSettings.ico" Link="Assets\AdvancedSettings.ico" CopyToOutputDirectory="Always" />
     <AppxManifest Include="Package.appxmanifest">
@@ -105,7 +105,7 @@
   </ItemGroup>
 
   <!-- Tester is only included in Dev builds -->
-  <ItemGroup Condition="'$(Configuration)' == 'Debug'">
+  <ItemGroup Condition="'$(BuildRing)' == 'Dev'">
     <ProjectReference Include="..\..\test\AdvancedSettings.Tester\AdvancedSettings.Tester.csproj" />
   </ItemGroup>
   

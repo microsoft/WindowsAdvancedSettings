@@ -44,8 +44,13 @@ Function Create-AppxBundleMapping {
     )
 
     $lines = @("[Files]")
-    Get-ChildItem -Path:$InputPath -Recurse -Filter:*$ProjectName* -Include *.appx, *.msix | % {
-        $lines += ("`"{0}`" `"{1}`"" -f ($_.FullName, $_.Name))
+    # Get-ChildItem -Path:$InputPath -Recurse -Filter:*$ProjectName* -Include *.appx, *.msix | % {
+    Get-ChildItem -Path:$InputPath -Recurse -Include *.appx, *.msix | % {
+        if ($_.FullName.Contains("\Stub\")) {
+            $lines += ("`"{0}`" `"AppxMetadata\Stub\{1}`"" -f ($_.FullName, $_.Name))
+        } else {
+            $lines += ("`"{0}`" `"{1}`"" -f ($_.FullName, $_.Name))
+        }
     }
 
     $outputFile = New-TemporaryFile

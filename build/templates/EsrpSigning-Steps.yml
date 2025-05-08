@@ -11,8 +11,10 @@ steps:
     displayName: ${{ parameters.displayName }}
     inputs:
       ConnectedServiceName: $(EsrpConnectedServiceName)
+      UseMSIAuthentication: true
       AppRegistrationClientId: $(EsrpAppRegistrationClientId)
       AppRegistrationTenantId: $(EsrpAppRegistrationTenantId)
+      EsrpClientId: $(EsrpClientId)
       AuthAKVName: $(EsrpAuthAKVName)
       AuthCertName: $(EsrpAuthCertName)
       AuthSignCertName: $(EsrpAuthSignCertName)
