@@ -125,10 +125,6 @@
     <value>Windows Advanced Settings</value>
     <comment>The name of our application</comment>
   </data>
-  <data name="AllFiles" xml:space="preserve">
-    <value>All files</value>
-    <comment>Text for a dropdown option in a file picker dialog to show all files in a directory</comment>
-  </data>
   <data name="AppDisplayNameStable" xml:space="preserve">
     <value>Windows Advanced Settings</value>
   </data>

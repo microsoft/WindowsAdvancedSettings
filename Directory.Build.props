@@ -47,8 +47,8 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <Compile Condition="$(MSBuildProjectName) != 'DevHomeStub'" Include="$(MSBuildThisFileDirectory)\codeAnalysis\GlobalSuppressions.cs" Link="GlobalSuppressions.cs" />
-    <Compile Condition="$(MSBuildProjectName) == 'DevHomeStub'" Include="$(MSBuildThisFileDirectory)\codeAnalysis\StubSuppressions.cs" Link="GlobalSuppressions.cs" />
+    <Compile Condition="$(MSBuildProjectName) != 'WindowsAdvancedSettingsStub'" Include="$(MSBuildThisFileDirectory)\codeAnalysis\GlobalSuppressions.cs" Link="GlobalSuppressions.cs" />
+    <Compile Condition="$(MSBuildProjectName) == 'WindowsAdvancedSettingsStub'" Include="$(MSBuildThisFileDirectory)\codeAnalysis\StubSuppressions.cs" Link="GlobalSuppressions.cs" />
     <AdditionalFiles Include="$(MSBuildThisFileDirectory)\codeAnalysis\StyleCop.json" Link="StyleCop.json" />
   </ItemGroup>
 

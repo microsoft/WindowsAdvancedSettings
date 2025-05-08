@@ -1,12 +1,8 @@
 trigger:
 - main
-- staging
 - release
 
 parameters:
-- name: SignOutput
-  type: boolean
-  default: False
 - name: Platforms
   type: object
   default:
@@ -18,22 +14,11 @@ parameters:
   default:
   - Debug
   - Release
-- name: "holdTrigger"
-  displayName: CloudTest HoldTrigger setting
-  type: string
-  default: None
-  values:
-  - None
-  - Completion
-  - Execution
-  - Failure
-  - Timeout
 
 variables:
  # MSIXVersion's second part should always be odd to account for stub app's version
   MSIXVersion: '0.2101'
   solution: '**/WindowsAdvancedSettings.sln'
-  VersionOfSDK: '0.700'
   appxPackageDir: 'AppxPackages'
   testOutputArtifactDir: 'TestResults'
 
@@ -59,6 +44,9 @@ extends:
         enabled: true
       arrow:
         serviceConnection: DevHome Build VM Generation
+      sourceRepositoriesToScan:
+        include:
+        - repository: git://Dart/DevHomeStub
       baseline:
         baselineFile: $(Build.SourcesDirectory)\guardian\SDL\.gdnbaselines
     pool:
@@ -68,12 +56,41 @@ extends:
     customBuildTags:
     - ES365AIMigrationTooling
     stages:
+    - stage: Build_StubPackages
+      dependsOn: []
+      jobs:
+      - job: Build_StubPackages
+        steps:
+        - checkout: self
+          path: s
+
+        - checkout: git://Dart/DevHomeStub
+
+        - task: NuGetToolInstaller@1
+
+        - task: NuGetAuthenticate@1
+
+        - task: PowerShell@2
+          displayName: Build Stub Packages
+          inputs:
+            filePath: 'build/scripts/Build.ps1'
+            arguments: -Configuration "Release" -Version $(MSIXVersion) -BuildStep "stubpackages" -IsAzurePipelineBuild
+
+        templateContext:
+          outputs:
+          - output: pipelineArtifact
+            displayName: 'Publish MSIX Bundle Artifacts'
+            artifactName: MsixBundle_Stub
+            targetPath: DevHomeStub\WindowsAdvancedSettingsStubPackage\AppxPackages
+
     - stage: Build_WindowsAdvancedSettings
       dependsOn: []
       jobs:
       - ${{ each configuration in parameters.Configurations }}:
         - ${{ each platform in parameters.Platforms }}:
           - job: Build_${{ platform }}_${{ configuration }}
+            workspace:
+              clean: all
             timeoutInMinutes: 120
             steps:
             - task: NuGetToolInstaller@1
@@ -86,13 +103,13 @@ extends:
             #  inputs:
             #    filePath: 'build/scripts/Unstub.ps1'
 
-            - task: MicrosoftTDBuild.tdbuild-task.tdbuild-task.TouchdownBuildTask@4
+            - task: MicrosoftTDBuild.tdbuild-task.tdbuild-task.TouchdownBuildTask@5
               displayName: Send and Download Localization Files for Artifacts
               condition: and(eq(variables['EnableLocalization'], 'true'), eq(variables['UpdateLocalization'], 'true'))
               inputs:
                 teamId: 71220
-                TDBuildServiceConnection: $(TouchdownServiceConnection)
-                authType: SubjectNameIssuer
+                FederatedIdentityTDBuildServiceConnection: $(TouchdownServiceConnection)
+                authType: FederatedIdentityTDBuild
                 resourceFilePath: |
                   **\en-US\*.resw
                   **\en-US\PDP.xml
@@ -101,14 +118,14 @@ extends:
                 appendRelativeDir: true
                 pseudoSetting: Included
 
-            - task: MicrosoftTDBuild.tdbuild-task.tdbuild-task.TouchdownBuildTask@4
+            - task: MicrosoftTDBuild.tdbuild-task.tdbuild-task.TouchdownBuildTask@5
               displayName: Download and Use Localization Files
               condition: eq(variables['EnableLocalization'], 'true')
               retryCountOnTaskFailure: 2
               inputs:
                 teamId: 71220
-                TDBuildServiceConnection: $(TouchdownServiceConnection)
-                authType: SubjectNameIssuer
+                FederatedIdentityTDBuildServiceConnection: $(TouchdownServiceConnection)
+                authType: FederatedIdentityTDBuild
                 resourceFilePath: |
                   **\en-US\*.resw
                   **\en-US\PDP.xml
@@ -149,15 +166,15 @@ extends:
                 filePath: 'build/scripts/Build.ps1'
                 arguments: -Platform "${{ platform }}" -Configuration "${{ configuration }}" -Version $(MSIXVersion) -BuildStep "msix" -AzureBuildingBranch "$(BuildingBranch)" -IsAzurePipelineBuild
 
-            # - task: PowerShell@2
-            #   displayName: Move BinLog to output directory
-            #   inputs:
-            #     targetType: inline
-            #     script: >-
-            #       Move-Item -Path $(Build.SourcesDirectory)\WindowsAdvancedSettings.${{ platform }}.${{ configuration }}.binlog -Destination $(Build.SourcesDirectory)\src\bin -Force
-            #     pwsh: true
+            - task: PowerShell@2
+              displayName: Move BinLog to output directory
+              inputs:
+                targetType: inline
+                script: >-
+                  Move-Item -Path $(Build.SourcesDirectory)\WindowsAdvancedSettings.${{ platform }}.${{ configuration }}.binlog -Destination $(Build.SourcesDirectory)\src\bin -Force
+                pwsh: true
 
-            # Symbols not yet defined.
+            # Symbols will be published once allowed.
             # - template: ./build/templates/publish-symbolrequestprod-api.yml@self
             #   parameters:
             #     includePublicSymbolServer: true
@@ -166,6 +183,7 @@ extends:
             #     indexSources: true
             #     symbolsArtifactName: 'WindowsAdvancedSettings_${{ platform }}_${{ configuration }}'
             #     symbolsVersion: '$(BuildingBranch)$(Build.BuildNumber)'
+            #     symbolExpiryTime: 180
             #     searchPattern: >-
             #       $(Build.SourcesDirectory)\**\bin\**\*.pdb
 
@@ -238,8 +256,7 @@ extends:
             - task: CopyFiles@2
               displayName: Copy Unit Test DLLs
               inputs:
-                #SourceFolder: # string. Source Folder.
-                Contents: 'test/bin/**/*' # string. Required. Contents. Default: *
+                Contents: 'test/bin/**/*'
                 targetFolder: '$(Build.ArtifactStagingDirectory)\unittest'
 
             templateContext:
@@ -259,7 +276,7 @@ extends:
                 sbomPackageVersion: $(MSIXVersion)
 
     - stage: Build_MsixBundle
-      dependsOn: [Build_WindowsAdvancedSettings]
+      dependsOn: [Build_WindowsAdvancedSettings, Build_StubPackages]
       condition: in(dependencies.Build_WindowsAdvancedSettings.result, 'Succeeded')
       jobs:
       - job: Build_MsixBundles
@@ -272,7 +289,24 @@ extends:
                 artifactName: msix_${{ platform }}_${{ configuration }}
                 targetPath: $(appxPackageDir)\${{ configuration }}
 
-          - ${{ if and(eq(variables['BuildingBranch'], 'release'), eq('${{ configuration }}', 'Release')) }}:
+            - task: PowerShell@2
+              displayName: Create Stub Directory
+              inputs:
+                targetType: 'inline'
+                script: New-Item -Path $(appxPackageDir)\${{ configuration }}\AppxMetadata\Stub -ItemType Directory
+
+            - task: DownloadPipelineArtifact@2
+              inputs:
+                buildType: 'current'
+                artifactName: MsixBundle_Stub
+                targetPath: $(appxPackageDir)\Staging
+
+            - task: PowerShell@2
+              displayName: Unbundle Stub Packages
+              inputs:
+                filePath: 'build/scripts/UnbundleStubPackage.ps1'
+                arguments: -InputPath $(appxPackageDir)\Staging -OutputLocation $(appxPackageDir)\${{ configuration }}\AppxMetadata\Stub
+
             - template: ./build/templates/EsrpSigning-Steps.yml@self
               parameters:
                 displayName: Submit *.msix to ESRP for code signing
@@ -359,6 +393,44 @@ extends:
                     }
                   ]
 
+          - task: MicrosoftTDBuild.tdbuild-task.tdbuild-task.TouchdownBuildTask@5
+            displayName: Download and Use Localization Files
+            condition: eq(variables['EnableLocalization'], 'true')
+            retryCountOnTaskFailure: 2
+            inputs:
+              teamId: 71220
+              FederatedIdentityTDBuildServiceConnection: $(TouchdownServiceConnection)
+              authType: FederatedIdentityTDBuild
+              resourceFilePath: |
+                **\en-US\PDP.xml
+              localizationTarget: false
+              appendRelativeDir: true
+              pseudoSetting: Included
+
+          - task: PowerShell@2
+            displayName: Move Loc files one level up
+            condition: eq(variables['EnableLocalization'], 'true')
+            inputs:
+              targetType: inline
+              script: >-
+                $Files = Get-ChildItem . -R -Filter 'PDP.xml' | ? FullName -Like '*en-US\*\PDP.xml'
+
+                $Files | % { Move-Item -Verbose $_.Directory $_.Directory.Parent.Parent -EA:Ignore }
+              pwsh: true
+
+          - task: MS-RDX-MRO.windows-store-publish-dev.package-task.store-package@3
+            displayName: 'Create Release StoreBroker Package'
+            condition: eq(variables['BuildingBranch'], 'release')
+            inputs:
+              serviceEndpoint: 'DevHome StoreBroker ServiceConnection'
+              sbConfigPath: '$(System.DefaultWorkingDirectory)\build\store\SBConfig.json'
+              sourceFolder: 'AppxBundles\Release'
+              contents: '*.msixbundle'
+              pdpPath: '$(System.DefaultWorkingDirectory)\build\store\PDPs'
+              pdpMediaPath: '$(System.DefaultWorkingDirectory)\build\store\media'
+              outSBName: WindowsAdvancedSettingsSubmissionPackage
+              pdpInclude: 'PDP.xml'
+
         templateContext:
           outputs:
           - output: pipelineArtifact
@@ -371,6 +443,11 @@ extends:
             condition: ${{ containsValue(parameters.Configurations, 'debug') }}
             artifactName: MsixBundle_Debug
             targetPath: AppxBundles\Debug
+          - output: pipelineArtifact
+            displayName: 'Publish StoreBroker Artifacts'
+            condition: eq(variables['BuildingBranch'], 'release')
+            artifactName: StoreBrokerPackage
+            targetPath: '$(System.DefaultWorkingDirectory)\SBOutDir'
 
     - stage: Store_Publish
       dependsOn: [Build_MsixBundle]
@@ -382,71 +459,26 @@ extends:
         )
       jobs:
       - job: Store_Publish
-        timeoutInMinutes: 360
-        steps:
-        - task: DownloadPipelineArtifact@2
-          inputs:
-            buildType: 'current'
-            artifactName: MsixBundle_Release
-            targetPath: StorePublish
-
-        - task: MicrosoftTDBuild.tdbuild-task.tdbuild-task.TouchdownBuildTask@4
-          displayName: Download and Use Localization Files
-          condition: eq(variables['EnableLocalization'], 'true')
-          retryCountOnTaskFailure: 2
-          inputs:
-            teamId: 71220
-            TDBuildServiceConnection: $(TouchdownServiceConnection)
-            authType: SubjectNameIssuer
-            resourceFilePath: |
-              **\en-US\PDP.xml
-            localizationTarget: false
-            appendRelativeDir: true
-            pseudoSetting: Included
-
-        - task: PowerShell@2
-          displayName: Move Loc files one level up
-          condition: eq(variables['EnableLocalization'], 'true')
-          inputs:
-            targetType: inline
-            script: >-
-              $Files = Get-ChildItem . -R -Filter 'PDP.xml' | ? FullName -Like '*en-US\*\PDP.xml'
-
-              $Files | % { Move-Item -Verbose $_.Directory $_.Directory.Parent.Parent -EA:Ignore }
-            pwsh: true
-
-        - task: MS-RDX-MRO.windows-store-publish-dev.package-task.store-package@3
-          displayName: 'Create Release StoreBroker Package'
-          condition: eq(variables['BuildingBranch'], 'release')
-          inputs:
-            serviceEndpoint: 'DevHome StoreBroker ServiceConnection'
-            sbConfigPath: '$(System.DefaultWorkingDirectory)\build\store\preview\SBConfig.json'
-            sourceFolder: 'StorePublish'
-            contents: '*.msixbundle'
-            pdpPath: '$(System.DefaultWorkingDirectory)\build\store\preview\PDPs'
-            pdpMediaPath: '$(System.DefaultWorkingDirectory)\build\store\preview\media'
-            outSBName: DevHomeStoreSubmissionPackage
-            pdpInclude: 'PDP.xml'
-
-        - task: MS-RDX-MRO.windows-store-publish-dev.publish-task.store-publish@3
-          displayName: 'Publish Release StoreBroker Package'
-          condition: eq(variables['BuildingBranch'], 'release')
-          inputs:
-            serviceEndpoint: 'DevHome StoreBroker ServiceConnection'
-            appId: 9N8MHTPHNGVV
-            inputMethod: JsonAndZip
-            jsonPath: '$(System.DefaultWorkingDirectory)\SBOutDir\DevHomeStoreSubmissionPackage.json'
-            zipPath: '$(System.DefaultWorkingDirectory)\SBOutDir\DevHomeStoreSubmissionPackage.zip'
-            force: true
-            deletePackages: true
-            numberOfPackagesToKeep: 2
-            jsonZipUpdateMetadata: true
-            updateImages: true
-
+        timeoutInMinutes: 0
         templateContext:
-          outputs:
-          - output: pipelineArtifact
-            displayName: 'Publish StoreBroker Artifacts'
-            condition: or(eq(variables['BuildingBranch'], 'staging'), eq(variables['BuildingBranch'], 'release'))
+          type: releaseJob
+          isProduction: true
+          inputs:
+          - input: pipelineArtifact
             artifactName: StoreBrokerPackage
-            targetPath: '$(System.DefaultWorkingDirectory)\SBOutDir'
+            targetPath: SBOutDir
+        steps:
+          - task: MS-RDX-MRO.windows-store-publish-dev.publish-task.store-publish@3
+            displayName: 'Publish Release StoreBroker Package'
+            condition: eq(variables['BuildingBranch'], 'release')
+            inputs:
+              serviceEndpoint: 'DevHome StoreBroker ServiceConnection'
+              appId: 9N8MHTPHNGVV
+              inputMethod: JsonAndZip
+              jsonPath: '$(System.DefaultWorkingDirectory)\SBOutDir\WindowsAdvancedSettingsSubmissionPackage.json'
+              zipPath: '$(System.DefaultWorkingDirectory)\SBOutDir\WindowsAdvancedSettingsSubmissionPackage.zip'
+              force: true
+              deletePackages: true
+              numberOfPackagesToKeep: 2
+              jsonZipUpdateMetadata: true
+              updateImages: true

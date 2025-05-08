@@ -64,7 +64,7 @@ Try {
     $buildRing = "Dev"
     $appxmanifestPath = (Join-Path $env:Build_RootDirectory "src\AdvancedSettings\Package-Dev.appxmanifest")
 
-    if (($AzureBuildingBranch -ieq "release") -Or ($env:Build_Configuration -ieq "release")) {
+    if ($AzureBuildingBranch -ieq "release") {
       $buildRing = "Stable"
       $appxmanifestPath = (Join-Path $env:Build_RootDirectory "src\AdvancedSettings\Package.appxmanifest")
     }
@@ -105,6 +105,29 @@ Try {
 
     # Reset the appxmanifest to prevent unnecessary code changes
     $appxmanifest = [System.Xml.Linq.XDocument]::Load($appxmanifestPath)
+    $appxmanifest.Root.Element($xIdentity).Attribute("Version").Value = "0.0.0.0"
+    $appxmanifest.Save($appxmanifestPath)
+  }
+
+  if (($BuildStep -ieq "stubpackages")) {
+    [Reflection.Assembly]::LoadWithPartialName("System.Xml.Linq")
+    $msbuildArgs = @(
+      ("DevHomeStub\WindowsAdvancedSettingsStub.sln"),
+      ("/p:Configuration=Release"),
+      ("/restore"),
+      ("/p:AppxPackageSigningEnabled=false")
+      )
+
+    # Update the appxmanifest
+    $xIdentity = [System.Xml.Linq.XName]::Get("{http://schemas.microsoft.com/appx/manifest/foundation/windows10}Identity");
+    $appxmanifestPath = (Join-Path $env:Build_RootDirectory "DevHomeStub\WindowsAdvancedSettingsStubPackage\Package.appxmanifest")
+    $appxmanifest = [System.Xml.Linq.XDocument]::Load($appxmanifestPath)
+    $versionParts = ($env:msix_version).Split('.')
+    $versionParts[1] = [string]([int]($versionParts[1]) - 1)
+    $appxmanifest.Root.Element($xIdentity).Attribute("Version").Value = ($versionParts -join '.')
+    $appxmanifest.Save($appxmanifestPath)
+
+    & $msbuildPath  $msbuildArgs
     $appxmanifest.Root.Element($xIdentity).Attribute("Version").Value = "0.0.0.0"
     $appxmanifest.Save($appxmanifestPath)
   }
