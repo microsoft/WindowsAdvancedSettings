@@ -52,6 +52,13 @@ public sealed class Program
 
     private static void HandleCOMServerActivation()
     {
+        var gpoPolicyEnabled = GPOHelper.GetConfiguredEnabledWindowsAdvancedSettingsValue();
+        if (!gpoPolicyEnabled)
+        {
+            Log.Information($"Windows Advanced Settings is disabled by policy, exiting.");
+            return;
+        }
+
         Log.Information($"Activating COM Server");
         using var sourceControlProviderServer = new SourceControlProviderServer();
         var sourceControlProviderInstance = new SourceControlProvider();
