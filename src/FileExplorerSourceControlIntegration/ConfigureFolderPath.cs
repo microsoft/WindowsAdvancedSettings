@@ -1,12 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using FileExplorerSourceControlIntegration;
 using Microsoft.Internal.Windows.DevHome.Helpers.FileExplorer;
 using Serilog;
-using Windows.Storage;
 
-namespace AdvancedSettings.Tester;
+namespace FileExplorerSourceControlIntegration;
 
 public enum ProviderType
 {
@@ -14,28 +12,21 @@ public enum ProviderType
     Release,
 }
 
-internal class ConfigureFolderPath
+public class ConfigureFolderPath
 {
     private static readonly string _releaseProviderGuidString = "1212F95B-257E-414e-B44F-F26634BD2627";
     private static readonly string _devProviderGuidString = "40FE4D6E-C9A0-48B4-A83E-AAA1D002C0D5";
-    private static readonly Guid _releaseProvider = new(_releaseProviderGuidString);
-    private static readonly Guid _devProvider = new(_devProviderGuidString);
-
-    public static void DisplayStatus()
-    {
-        foreach (var folderInfo in ExtraFolderPropertiesWrapper.GetRegisteredFolderInfos())
-        {
-            var providerName = GetProviderName(folderInfo.HandlerClsid);
-            Console.WriteLine($"{providerName}: {folderInfo.RootFolderPath}  {{{folderInfo.HandlerClsid}}}  {folderInfo.AppId}");
-        }
-    }
+    public static readonly Guid ReleaseProvider = new(_releaseProviderGuidString);
+    public static readonly Guid DevProvider = new(_devProviderGuidString);
+    public static readonly Guid CurrentProvider = typeof(SourceControlProvider).GUID;
 
     public static void AddPath(string provider, string path)
     {
         try
         {
             var providerType = (ProviderType)Enum.Parse(typeof(ProviderType), provider, true);
-            AddPath(providerType, path);
+            var providerGuid = GetProvider(providerType);
+            AddPath(providerGuid, path);
         }
         catch (Exception ex)
         {
@@ -43,10 +34,8 @@ internal class ConfigureFolderPath
         }
     }
 
-    public static void AddPath(ProviderType providerType, string path)
+    public static void AddPath(Guid provider, string path)
     {
-        var provider = GetProvider(providerType);
-        Console.WriteLine($"Registering source folder: {path} for provider {providerType}");
         try
         {
             if (!Directory.Exists(path))
@@ -79,28 +68,50 @@ internal class ConfigureFolderPath
         }
     }
 
-    private static Guid GetProvider(ProviderType providerType)
+    public static Guid GetProvider(ProviderType providerType)
     {
         return providerType switch
         {
-            ProviderType.Release => _releaseProvider,
-            _ => _devProvider,
+            ProviderType.Release => ReleaseProvider,
+            _ => DevProvider,
         };
     }
 
-    private static string GetProviderName(Guid guid)
+    public static void RemoveAllForProvider(string provider)
     {
-        if (guid.Equals(_devProvider))
+        try
         {
-            return "DEV";
+            var providerType = (ProviderType)Enum.Parse(typeof(ProviderType), provider, true);
+            var providerGuid = GetProvider(providerType);
+            RemoveAllForProvider(providerGuid);
         }
-        else if (guid.Equals(_releaseProvider))
+        catch (Exception ex)
         {
-            return "REL";
+            Log.Error(ex, $"Invalid provider: {provider}");
         }
-        else
+    }
+
+    public static void RemoveAllForProvider(Guid provider)
+    {
+        Log.Information($"Removing all registered folders for provider: {provider}");
+        try
         {
-            return "UNK";
+            foreach (var folderInfo in ExtraFolderPropertiesWrapper.GetRegisteredFolderInfos())
+            {
+                if (folderInfo.HandlerClsid.Equals(provider))
+                {
+                    RemovePath(folderInfo.RootFolderPath);
+                }
+            }
         }
+        catch (Exception ex)
+        {
+            Log.Error(ex, $"An exception occurred while enumerating the folder properties.");
+        }
+    }
+
+    public static void RemoveAllForCurrentProvider()
+    {
+        RemoveAllForProvider(typeof(SourceControlProvider).GUID);
     }
 }
