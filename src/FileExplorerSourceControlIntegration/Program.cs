@@ -55,7 +55,8 @@ public sealed class Program
         var gpoPolicyEnabled = GPOHelper.GetConfiguredEnabledWindowsAdvancedSettingsValue();
         if (!gpoPolicyEnabled)
         {
-            Log.Information($"Windows Advanced Settings is disabled by policy, exiting.");
+            Log.Information($"Windows Advanced Settings is disabled by policy, removing all registered entries for this provider and exiting.");
+            ConfigureFolderPath.RemoveAllForCurrentProvider();
             return;
         }
 
