@@ -2,7 +2,7 @@
 
 ## How to file issues and get help  
 
-For help and questions about using this project, please look at readme.
+For help and questions about using this project, please refer to the README.
 
 ## Microsoft Support Policy  
 
