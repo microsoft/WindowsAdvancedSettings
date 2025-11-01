@@ -19,7 +19,6 @@
     <!-- WinUI/Msix specific -->
     <UseWinUI>true</UseWinUI>
     <EnableMsixTooling>true</EnableMsixTooling>
-    <!-- Set these properties directly to avoid the need for complex conditional ItemGroups later -->
     <DisableMsixProjectCapabilityAddedByProject>true</DisableMsixProjectCapabilityAddedByProject>
     <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
 
@@ -28,11 +27,14 @@
     <PublishReadyToRunEmitSymbols>true</PublishReadyToRunEmitSymbols>
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
     
-    <!-- Conditional Properties -->
+    <!-- Conditional Properties: Define OutputType, AppxManifest, and Assets source based on build ring/config -->
     <!-- Debug builds produce a console app; otherwise a Windows app -->
     <OutputType Condition="'$(Configuration)' == 'Debug'">Exe</OutputType>
     <OutputType Condition="'$(Configuration)' != 'Debug'">WinExe</OutputType>
     
+    <AppxManifest Condition="'$(BuildRing)' == 'Dev'">Package-Dev.appxmanifest</AppxManifest>
+    <AppxManifest Condition="'$(BuildRing)' == 'Stable'">Package.appxmanifest</AppxManifest>
+
     <!-- Use a single definition for ApplicationIcon if the path is the same for both rings -->
     <ApplicationIcon>Assets\AdvancedSettings.ico</ApplicationIcon>
     
@@ -73,24 +75,13 @@
     <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
   </ItemGroup>
 
-  <!-- To build with the correct logo assets, only include the ones for the current build ring. -->
   <ItemGroup>
-    <!-- Use the AssetsSourceDir property to include the correct files with a consistent link location -->
-    <Content Include="$(AssetsSourceDir)\**" Link="Assets\Logos\%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
+    <!-- Include logo assets from the correct source directory into a consistent link location -->
+    <Content Include="$(AssetsSourceDir)\**" Link="Assets\Logos\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
     
-    <!-- Include the icon file explicitly here as well to ensure it's copied to output if needed -->
-    <Content Include="Assets\AdvancedSettings.ico" CopyToOutputDirectory="Always" Condition="'$(BuildRing)' == 'Stable'" />
+    <!-- Ensure the main icon is included in output if needed, as it might not be covered by the AssetsSourceDir logic -->
+    <Content Include="Assets\AdvancedSettings.ico" CopyToOutputDirectory="PreserveNewest" />
 
-    <!-- Define the correct AppxManifest based on build ring -->
-    <AppxManifest Include="Package-Dev.appxmanifest" Condition="'$(BuildRing)' == 'Dev'">
-      <SubType>Designer</SubType>
-    </AppxManifest>
-    <AppxManifest Include="Package.appxmanifest" Condition="'$(BuildRing)' == 'Stable'">
-      <SubType>Designer</SubType>
-    </AppxManifest>
-  </ItemGroup>
-
-  <ItemGroup>
     <Manifest Include="$(ApplicationManifest)" />
   </ItemGroup>
 
