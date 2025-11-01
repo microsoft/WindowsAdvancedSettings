@@ -5,30 +5,45 @@
   <Import Project="$(SolutionDir)ToolingVersions.props" />
   <Import Project="$(SolutionDir)Directory.CppBuild.props" />
   
-  <!-- Debug builds produce a console app; otherwise a Windows app -->
-  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
-    <OutputType>Exe</OutputType>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)' != 'Debug'">
-    <OutputType>WinExe</OutputType>
-  </PropertyGroup>
-
   <PropertyGroup>
+    <!-- Root Properties -->
     <RootNamespace>WindowsAdvancedSettings</RootNamespace>
-    <BuildRing Condition="'$(BuildRing)'==''">Dev</BuildRing>
-    <ApplicationIcon Condition="'$(BuildRing)'=='Dev'">Assets\AdvancedSettings.ico</ApplicationIcon>
-    <ApplicationIcon Condition="'$(BuildRing)'=='Stable'">Assets\AdvancedSettings.ico</ApplicationIcon>
-    <ApplicationManifest>app.manifest</ApplicationManifest>
     <Platforms>x86;x64;arm64</Platforms>
     <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
-    <PublishProfileFullPath Condition="'$(BuildingInsideVisualStudio)' != 'True'">$(SolutionDir)\src\Common\PublishProfiles\win-$(Platform).pubxml</PublishProfileFullPath>
+    <TargetFramework>net8.0-windows10.0.22621.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <UseWinUI>true</UseWinUI>
     <SelfContained>true</SelfContained>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+
+    <!-- WinUI/Msix specific -->
+    <UseWinUI>true</UseWinUI>
     <EnableMsixTooling>true</EnableMsixTooling>
+    <!-- Set these properties directly to avoid the need for complex conditional ItemGroups later -->
+    <DisableMsixProjectCapabilityAddedByProject>true</DisableMsixProjectCapabilityAddedByProject>
+    <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
+
+    <!-- Build Configuration & Output -->
+    <BuildRing Condition="'$(BuildRing)'==''">Dev</BuildRing>
     <PublishReadyToRunEmitSymbols>true</PublishReadyToRunEmitSymbols>
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+    
+    <!-- Conditional Properties -->
+    <!-- Debug builds produce a console app; otherwise a Windows app -->
+    <OutputType Condition="'$(Configuration)' == 'Debug'">Exe</OutputType>
+    <OutputType Condition="'$(Configuration)' != 'Debug'">WinExe</OutputType>
+    
+    <!-- Use a single definition for ApplicationIcon if the path is the same for both rings -->
+    <ApplicationIcon>Assets\AdvancedSettings.ico</ApplicationIcon>
+    
+    <PublishProfileFullPath Condition="'$(BuildingInsideVisualStudio)' != 'True'">$(SolutionDir)\src\Common\PublishProfiles\win-$(Platform).pubxml</PublishProfileFullPath>
+    
+    <!-- Define constants for stable builds -->
+    <DefineConstants Condition="'$(BuildRing)'=='Stable'">$(DefineConstants);STABLE_BUILD</DefineConstants>
+
+    <!-- Define source directory for asset linking based on build ring -->
+    <AssetsSourceDir Condition="'$(BuildRing)' == 'Dev'">Assets\Dev</AssetsSourceDir>
+    <AssetsSourceDir Condition="'$(BuildRing)' == 'Stable'">Assets\Production</AssetsSourceDir>
   </PropertyGroup>
 
   <ItemDefinitionGroup>
@@ -47,6 +62,7 @@
     <!-- 8.0.0 is latest for .NET 8.0 LTS -->
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
     <PackageReference Include="Microsoft.Windows.CsWinRT" Version="2.2.0" />
+    <!-- These SDK package versions appear to be tied to specific insider/preview builds based on the build number -->
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.6901" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.251003001" />
     <PackageReference Include="Serilog" Version="4.0.1" />
@@ -57,25 +73,19 @@
     <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
   </ItemGroup>
 
-
-  <!-- To build with the correct logo assets, only include the ones for the current build ring.
-       Place them in a common location, so references to them don't need to adjust for build ring. -->
+  <!-- To build with the correct logo assets, only include the ones for the current build ring. -->
   <ItemGroup>
-    <Content Remove="Assets\Release\*" />
-    <Content Remove="Assets\Dev\*" />
-  </ItemGroup>
+    <!-- Use the AssetsSourceDir property to include the correct files with a consistent link location -->
+    <Content Include="$(AssetsSourceDir)\**" Link="Assets\Logos\%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
+    
+    <!-- Include the icon file explicitly here as well to ensure it's copied to output if needed -->
+    <Content Include="Assets\AdvancedSettings.ico" CopyToOutputDirectory="Always" Condition="'$(BuildRing)' == 'Stable'" />
 
-  <ItemGroup Condition="'$(BuildRing)' == 'Dev'">
-    <Content Include="Assets\Dev\**" Link="Assets\Logos\%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
-    <AppxManifest Include="Package-Dev.appxmanifest">
+    <!-- Define the correct AppxManifest based on build ring -->
+    <AppxManifest Include="Package-Dev.appxmanifest" Condition="'$(BuildRing)' == 'Dev'">
       <SubType>Designer</SubType>
     </AppxManifest>
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(BuildRing)' == 'Stable'">
-    <Content Include="Assets\Production\**" Link="Assets\Logos\%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
-    <Content Include="Assets\AdvancedSettings.ico" Link="Assets\AdvancedSettings.ico" CopyToOutputDirectory="Always" />
-    <AppxManifest Include="Package.appxmanifest">
+    <AppxManifest Include="Package.appxmanifest" Condition="'$(BuildRing)' == 'Stable'">
       <SubType>Designer</SubType>
     </AppxManifest>
   </ItemGroup>
@@ -89,14 +99,6 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-
-  <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
-    <ProjectCapability Include="Msix" />
-  </ItemGroup>
-
-  <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
-    <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
-  </PropertyGroup>
 
   <!-- Third party notice file -->
   <ItemGroup>
@@ -116,9 +118,4 @@
     <ProjectReference Include="..\FileExplorerGitIntegration\FileExplorerGitIntegration.csproj" />
     <ProjectReference Include="..\FileExplorerSourceControlIntegration\FileExplorerSourceControlIntegration.csproj" />
   </ItemGroup>
-
-  <PropertyGroup>
-    <DefineConstants Condition="'$(BuildRing)'=='Stable'">$(DefineConstants);STABLE_BUILD</DefineConstants>
-    <TargetFramework>net8.0-windows10.0.22621.0</TargetFramework>
-  </PropertyGroup>
 </Project>
