@@ -4,8 +4,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="$(SolutionDir)ToolingVersions.props" />
   <Import Project="$(SolutionDir)Directory.CppBuild.props" />
-  
-  <PropertyGroup>
+
+  <PropertyGroup Label="Core Properties">
     <!-- Root Properties -->
     <RootNamespace>WindowsAdvancedSettings</RootNamespace>
     <Platforms>x86;x64;arm64</Platforms>
@@ -16,36 +16,76 @@
     <SelfContained>true</SelfContained>
     <ApplicationManifest>app.manifest</ApplicationManifest>
 
-    <!-- WinUI/Msix specific -->
+    <!-- WinUI/MSIX Specific -->
     <UseWinUI>true</UseWinUI>
     <EnableMsixTooling>true</EnableMsixTooling>
     <DisableMsixProjectCapabilityAddedByProject>true</DisableMsixProjectCapabilityAddedByProject>
     <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
+  </PropertyGroup>
 
-    <!-- Build Configuration & Output -->
-    <BuildRing Condition="'$(BuildRing)'==''">Dev</BuildRing>
-    <PublishReadyToRunEmitSymbols>true</PublishReadyToRunEmitSymbols>
-    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
-    
-    <!-- Conditional Properties: Define OutputType, AppxManifest, and Assets source based on build ring/config -->
-    <!-- Debug builds produce a console app; otherwise a Windows app -->
+  <PropertyGroup Label="Build Configuration">
+    <!-- Build Ring defaults to Dev if not specified -->
+    <BuildRing Condition="'$(BuildRing)' == ''">Dev</BuildRing>
+
+    <!-- Output Type: Console for Debug, Windows for Release/Stable -->
     <OutputType Condition="'$(Configuration)' == 'Debug'">Exe</OutputType>
     <OutputType Condition="'$(Configuration)' != 'Debug'">WinExe</OutputType>
-    
-    <AppxManifest Condition="'$(BuildRing)' == 'Dev'">Package-Dev.appxmanifest</AppxManifest>
-    <AppxManifest Condition="'$(BuildRing)' == 'Stable'">Package.appxmanifest</AppxManifest>
 
-    <!-- Use a single definition for ApplicationIcon if the path is the same for both rings -->
-    <ApplicationIcon>Assets\AdvancedSettings.ico</ApplicationIcon>
-    
-    <PublishProfileFullPath Condition="'$(BuildingInsideVisualStudio)' != 'True'">$(SolutionDir)\src\Common\PublishProfiles\win-$(Platform).pubxml</PublishProfileFullPath>
-    
-    <!-- Define constants for stable builds -->
-    <DefineConstants Condition="'$(BuildRing)'=='Stable'">$(DefineConstants);STABLE_BUILD</DefineConstants>
+    <!-- Constants -->
+    <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
+    <DefineConstants Condition="'$(BuildRing)' == 'Stable'">$(DefineConstants);STABLE_BUILD</DefineConstants>
 
-    <!-- Define source directory for asset linking based on build ring -->
+    <!-- Assets Source Directory -->
     <AssetsSourceDir Condition="'$(BuildRing)' == 'Dev'">Assets\Dev</AssetsSourceDir>
     <AssetsSourceDir Condition="'$(BuildRing)' == 'Stable'">Assets\Production</AssetsSourceDir>
+
+    <!-- Common Assets -->
+    <ApplicationIcon>Assets\AdvancedSettings.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Manifest Configuration">
+    <!-- Build Ring-specific AppxManifest -->
+    <AppxManifest Condition="'$(BuildRing)' == 'Dev'">Package-Dev.appxmanifest</AppxManifest>
+    <AppxManifest Condition="'$(BuildRing)' == 'Stable'">Package.appxmanifest</AppxManifest>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Publishing Configuration">
+    <!-- Ready to Run -->
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <PublishReadyToRunEmitSymbols>true</PublishReadyToRunEmitSymbols>
+    <PublishReadyToRunComposite>false</PublishReadyToRunComposite>
+
+    <!-- Publish Profile -->
+    <PublishProfileFullPath Condition="'$(BuildingInsideVisualStudio)' != 'true'">$(SolutionDir)\src\Common\PublishProfiles\win-$(Platform).pubxml</PublishProfileFullPath>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Optimization Settings" Condition="'$(Configuration)' == 'Release' OR '$(BuildRing)' == 'Stable'">
+    <!-- .NET 8 Performance Optimizations -->
+    <Optimize>true</Optimize>
+    <TieredCompilation>true</TieredCompilation>
+    <TieredCompilationQuickJit>true</TieredCompilationQuickJit>
+    <TieredPGO>true</TieredPGO>
+
+    <!-- Trimming (optional - enable if app size is critical) -->
+    <!-- <PublishTrimmed>true</PublishTrimmed> -->
+    <!-- <TrimMode>partial</TrimMode> -->
+
+    <!-- Optimization Preference for .NET 8 -->
+    <!-- <OptimizationPreference>Speed</OptimizationPreference> -->
+  </PropertyGroup>
+
+  <PropertyGroup Label="Build Quality">
+    <!-- Deterministic builds for reproducibility -->
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+
+    <!-- Optional: Enable for stricter builds -->
+    <!-- <TreatWarningsAsErrors>true</TreatWarningsAsErrors> -->
+    <!-- <WarningLevel>5</WarningLevel> -->
+  </PropertyGroup>
+
+  <PropertyGroup Label="Security Settings">
+    <!-- Control Flow Guard and Spectre Mitigation handled in ItemDefinitionGroup -->
   </PropertyGroup>
 
   <ItemDefinitionGroup>
@@ -54,20 +94,24 @@
       <SpectreMitigation>Spectre</SpectreMitigation>
     </ClCompile>
   </ItemDefinitionGroup>
-  
-  <ItemGroup>
-    <!-- Updated to latest stable versions -->
+
+  <ItemGroup Label="Package References">
+    <!-- Windows SDK and CsWin32 -->
     <PackageReference Include="Microsoft.Windows.CsWin32" Version="0.3.236">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <!-- 8.0.0 is latest for .NET 8.0 LTS -->
-    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
-    <PackageReference Include="Microsoft.Windows.CsWinRT" Version="2.2.0" />
-    <!-- These SDK package versions appear to be tied to specific insider/preview builds based on the build number -->
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.6901" />
+    <PackageReference Include="Microsoft.Windows.CsWinRT" Version="2.2.1" />
+
+    <!-- Windows App SDK -->
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.251003001" />
-    <PackageReference Include="Serilog" Version="4.0.1" />
+
+    <!-- .NET Extensions -->
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="8.0.1" />
+
+    <!-- Logging - Serilog -->
+    <PackageReference Include="Serilog" Version="4.1.0" />
     <PackageReference Include="Serilog.Extensions.Logging" Version="8.0.0" />
     <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
@@ -75,36 +119,36 @@
     <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
   </ItemGroup>
 
-  <ItemGroup>
-    <!-- Include logo assets from the correct source directory into a consistent link location -->
+  <ItemGroup Label="Assets - Logo and Icons">
+    <!-- Include build ring-specific logo assets -->
     <Content Include="$(AssetsSourceDir)\**" Link="Assets\Logos\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
-    
-    <!-- Ensure the main icon is included in output if needed, as it might not be covered by the AssetsSourceDir logic -->
+
+    <!-- Main application icon -->
     <Content Include="Assets\AdvancedSettings.ico" CopyToOutputDirectory="PreserveNewest" />
 
+    <!-- Application manifest -->
     <Manifest Include="$(ApplicationManifest)" />
   </ItemGroup>
 
-  <ItemGroup>
+  <ItemGroup Label="Configuration Files">
     <None Update="appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 
-  <!-- Third party notice file -->
-  <ItemGroup>
+  <ItemGroup Label="Third Party Notices">
     <Content Include="$(SolutionDir)NOTICE.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Link>Assets\NOTICE.txt</Link>
     </Content>
   </ItemGroup>
 
-  <!-- Tester is only included in Dev builds -->
-  <ItemGroup Condition="'$(BuildRing)' == 'Dev'">
+  <ItemGroup Label="Project References - Dev Build Only" Condition="'$(BuildRing)' == 'Dev'">
+    <!-- Tester is only included in Dev builds -->
     <ProjectReference Include="..\..\test\AdvancedSettings.Tester\AdvancedSettings.Tester.csproj" />
   </ItemGroup>
-  
-  <ItemGroup>
+
+  <ItemGroup Label="Project References - All Builds">
     <ProjectReference Include="..\Common\WindowsAdvancedSettings.Common.csproj" />
     <ProjectReference Include="..\FileExplorerGitIntegration\FileExplorerGitIntegration.csproj" />
     <ProjectReference Include="..\FileExplorerSourceControlIntegration\FileExplorerSourceControlIntegration.csproj" />
