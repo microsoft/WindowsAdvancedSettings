@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) Microsoft Corporation.
+     Licensed under the MIT License. -->
+<policyDefinitionResources xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" revision="0.1900" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+  <displayName>Windows Advanced Settings</displayName>
+  <description>Windows Advanced Settings</description>
+  <resources>
+    <stringTable>
+      <string id="WindowsAdvancedSettings">Microsoft Windows Advanced Settings</string>
+
+      <string id="SUPPORTED_WINDOWSADVANCEDSETTINGS_0_1900">Windows Advanced Settings version 0.1900.* or later</string>
+
+      <string id="ConfigureAllWindowsAdvancedSettingsEnabledStateDescription">
+        This policy configures the enabled state for Windows Advanced Settings.
+
+        If you enable this setting, Windows Advanced Settings will be always enabled and the user won't be able to disable it.
+
+        If you disable this setting, Windows Advanced Settings will be always disabled and the user won't be able to enable it.
+
+        If you don't configure this setting, users are able to enable or disable Windows Advanced Settings.
+
+        This policy will override any enabled state policies for individual Windows Advanced Settings features.
+      </string>
+
+      <string id="ConfigureAllWindowsAdvancedSettingsEnabledState">Configure Windows Advanced Settings enabled state</string>
+    </stringTable>
+
+  </resources>
+</policyDefinitionResources>
+

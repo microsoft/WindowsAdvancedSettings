@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright (c) Microsoft Corporation.
+     Licensed under the MIT License. -->
+<policyDefinitions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" revision="0.1900" schemaVersion="1.0" xmlns="http://schemas.microsoft.com/GroupPolicy/2006/07/PolicyDefinitions">
+  <policyNamespaces>
+    <target prefix="windowsadvancedsettings" namespace="Microsoft.Policies.WindowsAdvancedSettings" />
+  </policyNamespaces>
+  <resources minRequiredRevision="0.1900"/>
+  <supportedOn>
+    <definitions>
+      <definition name="SUPPORTED_WINDOWSADVANCEDSETTINGS_0_1900" displayName="$(string.SUPPORTED_WINDOWSADVANCEDSETTINGS_0_1900)"/>
+    </definitions>
+  </supportedOn>
+  <categories>
+    <category name="WindowsAdvancedSettings" displayName="$(string.WindowsAdvancedSettings)" />
+  </categories>
+
+  <policies>
+
+ <!--The name (id) of the policy is different from the valueName to sort it as first policy in edit dialog. The order is sorted alphabetically based on the "name" property.-->
+    <policy name="ConfigureAllWindowsAdvancedSettingsEnabledState" class="Both" displayName="$(string.ConfigureAllWindowsAdvancedSettingsEnabledState)" explainText="$(string.ConfigureAllWindowsAdvancedSettingsEnabledStateDescription)" key="Software\Policies\Microsoft\Windows\WindowsAdvancedSettings" valueName="ConfigureEnabledWindowsAdvancedSettings">
+      <parentCategory ref="DevHome" />
+      <supportedOn ref="SUPPORTED_WINDOWSADVANCEDSETTINGS_0_1900" />
+      <enabledValue>
+        <decimal value="1" />
+      </enabledValue>
+      <disabledValue>
+        <decimal value="0" />
+      </disabledValue>
+    </policy>
+  </policies>
+</policyDefinitions>
