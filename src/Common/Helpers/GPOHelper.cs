@@ -1,8 +1,9 @@
-﻿// Copyright (c) Microsoft Corporation.
+// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using Microsoft.Win32;
 using Serilog;
+using System;
 
 namespace WindowsAdvancedSettings.Common.Helpers;
 
@@ -12,73 +13,116 @@ public class GPOHelper
 
     private enum GpoRuleConfigured
     {
-        WrongValue = -3, // The policy is set to an unrecognized value
-        Unavailable = -2, // Couldn't access registry
-        NotConfigured = -1, // Policy is not configured
-        Disabled = 0, // Policy is disabled
-        Enabled = 1, // Policy is enabled
+        WrongValue = -3,      // The policy is set to an unrecognized value
+        Unavailable = -2,     // Couldn't access registry
+        NotConfigured = -1,   // Policy is not configured
+        Disabled = 0,         // Policy is disabled
+        Enabled = 1,          // Policy is enabled
     }
 
-    // Registry path where gpo policy values are stored
     private const string PoliciesScopeMachine = "HKEY_LOCAL_MACHINE";
-    private const string PoliciesPath = @"\SOFTWARE\Policies\Microsoft\Windows\WindowsAdvancedSettings";
-
-    // Registry value names
+    private const string PoliciesRegistryPath = @"HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\WindowsAdvancedSettings";
     private const string PolicyConfigureEnabledWindowsAdvancedSettings = "ConfigureEnabledWindowsAdvancedSettings";
 
     private static GpoRuleConfigured GetConfiguredValue(string registryValueName)
     {
+        ArgumentNullException.ThrowIfNull(registryValueName, nameof(registryValueName));
+
         try
         {
             var rawValue = Registry.GetValue(
-                keyName: PoliciesScopeMachine + PoliciesPath,
+                keyName: PoliciesScopeMachine + @"\SOFTWARE\Policies\Microsoft\Windows\WindowsAdvancedSettings",
                 valueName: registryValueName,
-                defaultValue: GpoRuleConfigured.NotConfigured);
+                defaultValue: null);
 
-            _log.Debug($"Registry value {registryValueName} set to {rawValue}");
+            _log.Debug("Retrieved registry value {RegistryValueName} with result {@RawValue}", 
+                registryValueName, rawValue);
 
-            // Value will be null if the subkey specified by keyName does not exist.
-            if (rawValue == null)
-            {
-                return GpoRuleConfigured.NotConfigured;
-            }
-            else if (rawValue is not int && rawValue is not GpoRuleConfigured)
-            {
-                return GpoRuleConfigured.WrongValue;
-            }
-            else
-            {
-                return (GpoRuleConfigured)rawValue;
-            }
+            // Try to convert the registry value to our enum
+            var convertedValue = ConvertToGpoRuleConfigured(rawValue);
+            return convertedValue;
         }
-        catch (System.Security.SecurityException)
+        catch (System.Security.SecurityException ex)
         {
-            // The user does not have the permissions required to read from the registry key.
+            _log.Warning(ex, "Access denied when reading registry value {RegistryValueName}", registryValueName);
             return GpoRuleConfigured.Unavailable;
         }
-        catch (System.IO.IOException)
+        catch (System.IO.IOException ex)
         {
-            // The RegistryKey that contains the specified value has been marked for deletion.
+            _log.Warning(ex, "IO error when accessing registry value {RegistryValueName}", registryValueName);
             return GpoRuleConfigured.Unavailable;
         }
-        catch (System.ArgumentException)
+        catch (System.ArgumentException ex)
         {
-            // keyName does not begin with a valid registry root.
+            _log.Warning(ex, "Invalid registry path for value {RegistryValueName}", registryValueName);
             return GpoRuleConfigured.NotConfigured;
         }
+        catch (Exception ex)
+        {
+            _log.Error(ex, "Unexpected error reading registry value {RegistryValueName}", registryValueName);
+            return GpoRuleConfigured.Unavailable;
+        }
+    }
+
+    private static GpoRuleConfigured ConvertToGpoRuleConfigured(object? rawValue)
+    {
+        // Use pattern matching for cleaner type checking
+        return rawValue switch
+        {
+            null => GpoRuleConfigured.NotConfigured,
+            int intValue => Enum.IsDefined(typeof(GpoRuleConfigured), intValue)
+                ? (GpoRuleConfigured)intValue
+                : GpoRuleConfigured.WrongValue,
+            GpoRuleConfigured enumValue => enumValue,
+            long longValue => TryConvertLongToGpo(longValue),
+            string stringValue => TryConvertStringToGpo(stringValue),
+            _ => GpoRuleConfigured.WrongValue
+        };
+    }
+
+    private static GpoRuleConfigured TryConvertLongToGpo(long value)
+    {
+        try
+        {
+            var intValue = Convert.ToInt32(value);
+            return Enum.IsDefined(typeof(GpoRuleConfigured), intValue) 
+                ? (GpoRuleConfigured)intValue 
+                : GpoRuleConfigured.WrongValue;
+        }
+        catch (OverflowException)
+        {
+            return GpoRuleConfigured.WrongValue;
+        }
+    }
+
+    private static GpoRuleConfigured TryConvertStringToGpo(string value)
+    {
+        if (int.TryParse(value, out int intValue))
+        {
+            return Enum.IsDefined(typeof(GpoRuleConfigured), intValue) 
+                ? (GpoRuleConfigured)intValue 
+                : GpoRuleConfigured.WrongValue;
+        }
+
+        return GpoRuleConfigured.WrongValue;
     }
 
     private static bool EvaluateConfiguredValue(string registryValueName, GpoRuleConfigured defaultValue)
     {
-        var configuredValue = GetConfiguredValue(registryValueName);
-        if (configuredValue < 0)
-        {
-            if (configuredValue != GpoRuleConfigured.NotConfigured)
-            {
-                // Only log an error if a configuration was attempted but was incorrect. NotConfigured is expected state.
-                _log.Error($"Registry value {registryValueName} set to {configuredValue}, using default {defaultValue} instead.");
-            }
+        ArgumentNullException.ThrowIfNull(registryValueName, nameof(registryValueName));
 
+        var configuredValue = GetConfiguredValue(registryValueName);
+
+        // If we got an error state (negative value) and it's not NotConfigured, log it
+        if (configuredValue < 0 && configuredValue != GpoRuleConfigured.NotConfigured)
+        {
+            _log.Error("Registry value {RegistryValueName} is in invalid state {State}, using default {DefaultValue}", 
+                registryValueName, configuredValue, defaultValue);
+            configuredValue = defaultValue;
+        }
+        else if (configuredValue < 0)
+        {
+            // NotConfigured is normal - use default without error logging
             configuredValue = defaultValue;
         }
 
@@ -87,7 +131,8 @@ public class GPOHelper
 
     public static bool GetConfiguredEnabledWindowsAdvancedSettingsValue()
     {
-        var defaultValue = GpoRuleConfigured.Enabled;
-        return EvaluateConfiguredValue(PolicyConfigureEnabledWindowsAdvancedSettings, defaultValue);
+        return EvaluateConfiguredValue(
+            PolicyConfigureEnabledWindowsAdvancedSettings, 
+            GpoRuleConfigured.Enabled);
     }
 }
