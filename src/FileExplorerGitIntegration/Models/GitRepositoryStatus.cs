@@ -39,12 +39,50 @@ internal sealed class GitRepositoryStatus
     public void Add(string path, GitStatusEntry status)
     {
         _fileEntries.Add(path, status);
-        foreach (var entry in _statusEntries)
+
+        if ((status.Status & FileStatus.NewInIndex) != 0)
         {
-            if (status.Status.HasFlag(entry.Key))
-            {
-                entry.Value.Add(status);
-            }
+            _statusEntries[FileStatus.NewInIndex].Add(status);
+        }
+
+        if ((status.Status & FileStatus.ModifiedInIndex) != 0)
+        {
+            _statusEntries[FileStatus.ModifiedInIndex].Add(status);
+        }
+
+        if ((status.Status & FileStatus.DeletedFromIndex) != 0)
+        {
+            _statusEntries[FileStatus.DeletedFromIndex].Add(status);
+        }
+
+        if ((status.Status & FileStatus.NewInWorkdir) != 0)
+        {
+            _statusEntries[FileStatus.NewInWorkdir].Add(status);
+        }
+
+        if ((status.Status & FileStatus.ModifiedInWorkdir) != 0)
+        {
+            _statusEntries[FileStatus.ModifiedInWorkdir].Add(status);
+        }
+
+        if ((status.Status & FileStatus.DeletedFromWorkdir) != 0)
+        {
+            _statusEntries[FileStatus.DeletedFromWorkdir].Add(status);
+        }
+
+        if ((status.Status & FileStatus.RenamedInIndex) != 0)
+        {
+            _statusEntries[FileStatus.RenamedInIndex].Add(status);
+        }
+
+        if ((status.Status & FileStatus.RenamedInWorkdir) != 0)
+        {
+            _statusEntries[FileStatus.RenamedInWorkdir].Add(status);
+        }
+
+        if ((status.Status & FileStatus.Conflicted) != 0)
+        {
+            _statusEntries[FileStatus.Conflicted].Add(status);
         }
     }
 
