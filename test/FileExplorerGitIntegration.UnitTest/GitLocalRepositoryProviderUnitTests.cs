@@ -154,6 +154,20 @@ public class GitLocalRepositoryProviderUnitTests
     }
 
     [TestMethod]
+    public void GitRepositoryStatusAddsMatchingBuckets()
+    {
+        var status = new GitRepositoryStatus();
+        var entry = new GitStatusEntry("src/renamed.txt", FileStatus.RenamedInIndex | FileStatus.ModifiedInWorkdir);
+
+        status.Add("src/renamed.txt", entry);
+
+        Assert.AreEqual(1, status.RenamedInIndex.Count);
+        Assert.AreEqual(1, status.Modified.Count);
+        Assert.AreSame(entry, status.RenamedInIndex[0]);
+        Assert.AreSame(entry, status.Modified[0]);
+    }
+
+    [TestMethod]
     public void DetectFileRename()
     {
         const string statusProperty = "System.VersionControl.Status";
